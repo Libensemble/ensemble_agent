@@ -22,9 +22,11 @@ from .prompts import (
 from .tools import load_tool_providers
 from .tools.generator import GeneratorTools
 
-DEFAULT_PROMPT = """Create six_hump_camel APOSMM scripts:
-- Executable: six_hump_camel/six_hump_camel.x
-- Input: six_hump_camel/input.txt
+_TESTS_DIR = str(Path(__file__).parent.parent / "tests")
+
+DEFAULT_PROMPT = f"""Create six_hump_camel APOSMM scripts:
+- Executable: {_TESTS_DIR}/six_hump_camel/six_hump_camel.x
+- Input: {_TESTS_DIR}/six_hump_camel/input.txt
 - Template vars: X0, X1
 - 4 workers, 100 sims.
 - The output file for each simulation is output.txt
@@ -179,10 +181,4 @@ async def _run_interactive(agent, messages, initial_msg, config, has_generator, 
             print("\nSession ended")
             break
 
-        messages.append(
-            SystemMessage(
-                content="STOP. Read the user's next message carefully and respond to exactly what they ask. "
-                "Do not continue previous tasks."
-            )
-        )
         messages.append(HumanMessage(content=user_input))

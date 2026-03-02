@@ -16,6 +16,7 @@ MAX_AGENT_ITERATIONS = 15
 # Default models
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
 DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-20250514"
+DEFAULT_ARGO_MODEL = "claude-opus-4-6"
 
 # Storage
 ARCHIVE_RUNS_DIR = "archive_runs"
@@ -34,11 +35,21 @@ ARCHIVE_ITEMS = [
 INPUT_MARKER = "[INPUT_REQUESTED]"
 
 
+def _has_anthropic_key() -> bool:
+    return bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
+
+
+def _is_argo() -> bool:
+    return bool(os.environ.get("ANTHROPIC_BASE_URL") and _has_anthropic_key())
+
+
 def _default_model() -> str:
     """Pick default model based on available API keys."""
     if os.environ.get("LLM_MODEL"):
         return os.environ["LLM_MODEL"]
-    if os.environ.get("OPENAI_API_KEY") or not os.environ.get("ANTHROPIC_API_KEY"):
+    if _is_argo():
+        return DEFAULT_ARGO_MODEL
+    if os.environ.get("OPENAI_API_KEY") or not _has_anthropic_key():
         return DEFAULT_OPENAI_MODEL
     return DEFAULT_ANTHROPIC_MODEL
 

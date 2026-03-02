@@ -14,23 +14,12 @@ import requests
 import websockets
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from ensemble_agent.config import DEFAULT_OUTPUT_DIR
+from ensemble_agent.config import DEFAULT_OUTPUT_DIR, _default_model
 
 WS_URL = "ws://127.0.0.1:8000/ws/test"
 DEFAULT_AGENT_DIR = Path(__file__).parent.parent
 ALCF_API_BASE = "https://inference-api.alcf.anl.gov"
 ALCF_ENDPOINTS_URL = f"{ALCF_API_BASE}/resource_server/list-endpoints"
-DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
-DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-20250514"
-
-
-def _default_model():
-    """Pick default model based on which API key is available."""
-    if os.environ.get("LLM_MODEL"):
-        return os.environ["LLM_MODEL"]
-    if os.environ.get("OPENAI_API_KEY") or not os.environ.get("ANTHROPIC_API_KEY"):
-        return DEFAULT_OPENAI_MODEL
-    return DEFAULT_ANTHROPIC_MODEL
 
 
 def _fetch_models():
@@ -201,7 +190,7 @@ def _check_api(model=None, base_url=None):
 
 DEFAULT_TESTS_DIR = DEFAULT_AGENT_DIR / "tests"
 DEFAULT_AGENT_PATTERN = "ensemble_agent.py"
-NONE_OPTION = "(none)"
+NONE_OPTION = "None (generate scripts)"
 INPUT_MARKER = "[INPUT_REQUESTED]"
 
 ws_conn = None
@@ -323,7 +312,7 @@ if _init_model_err:
 with gr.Blocks() as demo:
     with gr.Row():
         gr.Markdown(f"### libEnsemble Agent &nbsp; · &nbsp; Service: `{_service_label}`")
-        run_btn = gr.Button("Run", variant="primary")
+        run_btn = gr.Button("Start Agent", variant="primary")
         reset_btn = gr.Button("Reset", variant="stop")
         settings_btn = gr.Button("⚙️")
 

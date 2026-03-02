@@ -78,13 +78,10 @@ class Session:
         run_dir = Path(agent_dir) if agent_dir else AGENT_DIR
         cmd = [sys.executable, agent_script]
 
-        # Add --interactive if the script supports it
-        if "interactive" in agent_script.lower():
-            cmd.append("--interactive")
-
-        # Add --scripts only if provided
         if scripts_dir:
             cmd.extend(["--scripts", scripts_dir])
+        else:
+            cmd.append("--interactive")
 
         await self._log(ws, f"started: {' '.join(cmd)}")
 
