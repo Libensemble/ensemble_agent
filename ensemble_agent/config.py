@@ -9,7 +9,7 @@ from typing import Optional
 
 
 # Execution
-MAX_RETRIES = 2
+MAX_RUNS = 3
 SCRIPT_TIMEOUT = 300  # seconds
 MAX_AGENT_ITERATIONS = 15
 
@@ -83,7 +83,7 @@ class AgentConfig:
     debug: bool = False
 
     # Execution limits
-    max_retries: int = MAX_RETRIES
+    max_runs: int = MAX_RUNS
     max_iterations: int = MAX_AGENT_ITERATIONS
     script_timeout: int = SCRIPT_TIMEOUT
 

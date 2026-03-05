@@ -8,6 +8,7 @@ from pathlib import Path
 from queue import Queue, Empty
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from ensemble_agent.config import DEFAULT_OUTPUT_DIR
@@ -127,6 +128,29 @@ class Session:
 
 
 sessions: dict[str, Session] = {}
+
+
+@app.get("/graphs")
+async def list_graphs(agent_dir: str = ""):
+    run_dir = Path(agent_dir) if agent_dir else AGENT_DIR
+    graphs_dir = run_dir / DEFAULT_OUTPUT_DIR / "graphs"
+    if not graphs_dir.exists():
+        return {"graphs": []}
+    pngs = sorted(
+        [f.name for f in graphs_dir.glob("*.png")],
+        key=lambda n: os.path.getmtime(graphs_dir / n),
+        reverse=True,
+    )
+    return {"graphs": pngs}
+
+
+@app.get("/graphs/{filename}")
+async def serve_graph(filename: str, agent_dir: str = ""):
+    run_dir = Path(agent_dir) if agent_dir else AGENT_DIR
+    filepath = run_dir / DEFAULT_OUTPUT_DIR / "graphs" / filename
+    if not filepath.exists() or not filepath.suffix == ".png":
+        return {"error": "Not found"}
+    return FileResponse(str(filepath), media_type="image/png")
 
 
 @app.get("/debug-log")

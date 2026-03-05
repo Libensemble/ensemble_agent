@@ -1,5 +1,6 @@
 """Agent orchestrator — builds the agent, runs autonomous or interactive mode."""
 
+import re
 import shutil
 import sys
 from contextlib import AsyncExitStack
@@ -7,6 +8,8 @@ from pathlib import Path
 
 from langchain.agents import create_agent
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.tools import StructuredTool
+from langchain_mcp_adapters.tools import load_mcp_tools
 
 from .archive import ArchiveManager
 from .config import AgentConfig, INPUT_MARKER
@@ -19,8 +22,7 @@ from .prompts import (
     INTERACTIVE_REVIEW_GOAL,
     build_system_prompt,
 )
-from .tools import load_tool_providers
-from .tools.generator import GeneratorTools
+from . import tool_server
 
 _TESTS_DIR = str(Path(__file__).parent.parent / "tests")
 
@@ -48,30 +50,27 @@ async def run_agent(config: AgentConfig):
         log_path = Path(config.output_dir) / "debug_log.txt"
         debug = DebugLogger(log_path, model=config.model)
 
-    # Load tool providers
-    providers = load_tool_providers(config, archive)
-    has_generator = any(isinstance(p, GeneratorTools) for p in providers)
+    # Initialize and load local tools (in-process)
+    tool_server.init(config, archive)
+    tools = tool_server.get_langchain_tools()
+
+    has_generator = not config.scripts_dir
 
     # MCP setup for generator
     async with AsyncExitStack() as stack:
         if has_generator:
-            mcp_server = find_mcp_server(config.mcp_server)
-            print(f"Generator MCP: {mcp_server}")
-            session = await stack.enter_async_context(connect_mcp(mcp_server))
-            print("Connected to MCP server")
-
-            # Get MCP tool schema and inject into generator
-            mcp_tools = await session.list_tools()
-            mcp_tool = mcp_tools.tools[0]
-            for p in providers:
-                if isinstance(p, GeneratorTools):
-                    p.set_mcp_session(session)
-                    p.set_mcp_tool_schema(mcp_tool)
-
-        # Collect tools from all providers
-        tools = []
-        for p in providers:
-            tools.extend(p.get_tools())
+            try:
+                mcp_server = find_mcp_server(config.mcp_server)
+                print(f"Generator MCP: {mcp_server}")
+                gen_session = await stack.enter_async_context(connect_mcp(mcp_server))
+                print("Connected to generator MCP server")
+                gen_tools = await load_mcp_tools(gen_session)
+                gen_tool = _wrap_generator_tool(gen_tools[0], archive.work_dir)
+                tools.append(gen_tool)
+            except (FileNotFoundError, Exception) as e:
+                print(f"Generator MCP not available: {e}")
+                print("Continuing without script generator")
+                has_generator = False
 
         # Create LLM and agent
         llm, service = create_llm(config.model, config.temperature, config.base_url)
@@ -79,7 +78,7 @@ async def run_agent(config: AgentConfig):
         print(f"Agent initialized (model: {config.model}, service: {service})\n")
 
         # Build system prompt
-        system_prompt = build_system_prompt(providers, has_generator)
+        system_prompt = build_system_prompt(has_generator)
         messages = [("system", system_prompt)]
 
         if debug:
@@ -96,6 +95,33 @@ async def run_agent(config: AgentConfig):
             await _run_autonomous(agent, messages, initial_msg, config, debug)
         else:
             await _run_interactive(agent, messages, initial_msg, config, has_generator, debug)
+
+
+def _wrap_generator_tool(raw_tool, work_dir):
+    """Wrap the MCP generator tool to auto-save generated files."""
+    original_coroutine = raw_tool.coroutine
+
+    async def wrapped(**kwargs):
+        kwargs.pop("custom_set_objective", None)
+        kwargs.pop("set_objective_code", None)
+
+        scripts_text = await original_coroutine(**kwargs)
+
+        if scripts_text and "===" in scripts_text:
+            work_dir.mkdir(exist_ok=True)
+            pattern = r"=== (.+?) ===\n(.*?)(?=\n===|$)"
+            for filename, content in re.findall(pattern, scripts_text, re.DOTALL):
+                (work_dir / filename.strip()).write_text(content.strip() + "\n")
+                print(f"- Saved: {work_dir / filename.strip()}", flush=True)
+
+        return scripts_text
+
+    return StructuredTool(
+        name=raw_tool.name,
+        description=raw_tool.description,
+        args_schema=raw_tool.args_schema,
+        coroutine=wrapped,
+    )
 
 
 def _build_initial_message(config, archive):

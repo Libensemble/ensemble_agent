@@ -25,6 +25,18 @@ NO_GENERATOR_RULES = (
     "- You are working with existing scripts. Use read_file, write_file, and run_script to fix them."
 )
 
+GRAPHS_PROMPT_FRAGMENT = (
+    "After a successful run, call generate_graphs to visualize results. "
+    "It produces objective progress plots and APOSMM optimization run plots "
+    "from the .npy and .pickle output files."
+)
+
+GENERATOR_PROMPT_FRAGMENT = (
+    "You have a CreateLibEnsembleScripts tool. "
+    "Use it ONCE to generate initial scripts. "
+    "For modifications, use read_file + write_file instead."
+)
+
 AUTONOMOUS_GOAL = """{initial_msg}
 
 After generating/loading scripts: review them, run them, and if they fail fix the error and retry.
@@ -45,17 +57,13 @@ Instructions:
 INTERACTIVE_REVIEW_GOAL = """I have existing scripts. The main script is '{run_script_name}'. Please review them and highlight the key configuration."""
 
 
-def build_system_prompt(providers, has_generator):
-    """Assemble the system prompt from provider fragments and reference docs."""
+def build_system_prompt(has_generator):
+    """Assemble the system prompt."""
     generator_rules = GENERATOR_RULES if has_generator else NO_GENERATOR_RULES
-
-    fragments = []
-    for p in providers:
-        frag = p.get_prompt_fragment()
-        if frag:
-            fragments.append(frag)
-
-    reference_context = "\n\n".join(fragments) if fragments else ""
+    fragments = [GRAPHS_PROMPT_FRAGMENT]
+    if has_generator:
+        fragments.append(GENERATOR_PROMPT_FRAGMENT)
+    reference_context = "\n\n".join(fragments)
 
     return SYSTEM_PROMPT.format(
         generator_rules=generator_rules,

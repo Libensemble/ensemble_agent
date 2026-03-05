@@ -1,4 +1,4 @@
-"""MCP server discovery and connection utilities."""
+"""MCP server discovery and connection."""
 
 import os
 import sys
@@ -30,10 +30,11 @@ def find_mcp_server(user_path=None):
         if loc.exists():
             return loc
 
-    print("Error: Cannot find mcp_server.mjs")
-    print(f"Searched: {', '.join(str(loc) for loc in locations)}")
-    print("Set GENERATOR_MCP_SERVER environment variable or use --mcp-server flag")
-    sys.exit(1)
+    raise FileNotFoundError(
+        "Cannot find mcp_server.mjs. "
+        f"Searched: {', '.join(str(loc) for loc in locations)}. "
+        "Set GENERATOR_MCP_SERVER environment variable or use --mcp-server flag."
+    )
 
 
 @asynccontextmanager

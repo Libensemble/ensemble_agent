@@ -363,7 +363,11 @@ with gr.Blocks() as demo:
             script_file_dropdown = gr.Dropdown(label="Generated Scripts", choices=[], value=None)
             output_script = gr.Code(label="Script Content", language="python", lines=10)
         with gr.Tab("Graphs"):
-            graphs_placeholder = gr.Markdown("*Graphs will appear here.*")
+            graphs_refresh_btn = gr.Button("Refresh Graphs", size="sm")
+            graphs_gallery = gr.Gallery(
+                label="Generated Graphs", columns=1, height="auto",
+                object_fit="scale-down", show_label=False, preview=True
+            )
         with gr.Tab("Debug Log"):
             debug_refresh_btn = gr.Button("Refresh Log", size="sm")
             debug_log_box = gr.Code(label="Agent Debug Log", language=None, lines=20)
@@ -544,6 +548,14 @@ with gr.Blocks() as demo:
             pass
         return "(no debug log available)"
 
+    def load_graphs(agent_dir_val):
+        agent_dir = Path(agent_dir_val) if agent_dir_val else DEFAULT_AGENT_DIR
+        graphs_dir = agent_dir / DEFAULT_OUTPUT_DIR / "graphs"
+        if not graphs_dir.exists():
+            return []
+        pngs = sorted(graphs_dir.glob("*.png"), key=lambda p: p.stat().st_mtime, reverse=True)
+        return [str(p) for p in pngs]
+
     def reset_ui():
         _drain_queue(output_queue)
         _drain_queue(message_queue)
@@ -566,7 +578,7 @@ with gr.Blocks() as demo:
                  settings_visible, settings_modal]
     )
 
-    # Run button: start script → stream output → refresh versions → load scripts → refresh debug log
+    # Run button: start script → stream output → refresh versions → load scripts → refresh graphs → refresh debug log
     run_btn.click(
         start_run,
         inputs=[agent_dropdown, scripts_dropdown, chatbot, agent_dir_state, scripts_dir_state,
@@ -579,6 +591,8 @@ with gr.Blocks() as demo:
     ).then(
         load_version_scripts, inputs=[version_dropdown, agent_dir_state],
         outputs=[scripts_dict, script_file_dropdown, output_script]
+    ).then(
+        load_graphs, inputs=[agent_dir_state], outputs=[graphs_gallery]
     ).then(
         fetch_debug_log, inputs=[agent_dir_state], outputs=[debug_log_box]
     )
@@ -594,6 +608,8 @@ with gr.Blocks() as demo:
         load_version_scripts, inputs=[version_dropdown, agent_dir_state],
         outputs=[scripts_dict, script_file_dropdown, output_script]
     ).then(
+        load_graphs, inputs=[agent_dir_state], outputs=[graphs_gallery]
+    ).then(
         fetch_debug_log, inputs=[agent_dir_state], outputs=[debug_log_box]
     )
     chat_input.submit(
@@ -606,6 +622,8 @@ with gr.Blocks() as demo:
         load_version_scripts, inputs=[version_dropdown, agent_dir_state],
         outputs=[scripts_dict, script_file_dropdown, output_script]
     ).then(
+        load_graphs, inputs=[agent_dir_state], outputs=[graphs_gallery]
+    ).then(
         fetch_debug_log, inputs=[agent_dir_state], outputs=[debug_log_box]
     )
 
@@ -615,6 +633,9 @@ with gr.Blocks() as demo:
     # Scripts panel
     script_file_dropdown.change(update_script_display, inputs=[script_file_dropdown, scripts_dict], outputs=output_script)
     version_dropdown.change(load_version_scripts, inputs=[version_dropdown, agent_dir_state], outputs=[scripts_dict, script_file_dropdown, output_script])
+
+    # Graphs
+    graphs_refresh_btn.click(load_graphs, inputs=[agent_dir_state], outputs=[graphs_gallery])
 
     # Debug log
     debug_refresh_btn.click(fetch_debug_log, inputs=[agent_dir_state], outputs=[debug_log_box])
@@ -663,7 +684,7 @@ def start_uvicorn_server():
 if __name__ == "__main__":
     start_uvicorn_server()
     print("Starting Gradio interface...")
-    demo.launch()
+    demo.launch(allowed_paths=[str(DEFAULT_AGENT_DIR / DEFAULT_OUTPUT_DIR)])
 
     if uvicorn_process:
         print("\nStopping uvicorn server...")
