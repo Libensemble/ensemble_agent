@@ -509,11 +509,10 @@ with gr.Blocks() as demo:
         new_agent_dir = agent_dir.strip() if agent_dir and agent_dir.strip() else str(DEFAULT_AGENT_DIR)
         new_agent_pattern = agent_pattern.strip() if agent_pattern and agent_pattern.strip() else DEFAULT_AGENT_PATTERN
         new_scripts_dir = scripts_dir.strip() if scripts_dir and scripts_dir.strip() else str(DEFAULT_TESTS_DIR)
+        agents = scan_agent_scripts(new_agent_dir, new_agent_pattern)
         return (
             new_agent_dir, new_agent_pattern, new_scripts_dir,
-            gr.update(choices=scan_agent_scripts(new_agent_dir, new_agent_pattern),
-                      value=scan_agent_scripts(new_agent_dir, new_agent_pattern)[0]
-                      if scan_agent_scripts(new_agent_dir, new_agent_pattern) else None),
+            gr.update(choices=agents, value=agents[0] if agents else None),
             gr.update(choices=scan_script_dirs(new_scripts_dir), value=NONE_OPTION),
             gr.update(choices=scan_versions(new_agent_dir), value="latest"),
             False, gr.update(visible=False)
@@ -576,6 +575,19 @@ with gr.Blocks() as demo:
 
     # --- Wire up events ---
 
+    def _with_refresh(event):
+        """Append the standard refresh chain (versions, scripts, graphs, debug) after an event."""
+        return event.then(
+            refresh_versions, inputs=[agent_dir_state], outputs=[version_dropdown]
+        ).then(
+            load_version_scripts, inputs=[version_dropdown, agent_dir_state],
+            outputs=[scripts_dict, script_file_dropdown, output_script]
+        ).then(
+            load_graphs, inputs=[agent_dir_state], outputs=[graphs_gallery]
+        ).then(
+            fetch_debug_log, inputs=[agent_dir_state], outputs=[debug_log_box]
+        )
+
     demo.load(start_websocket)
 
     # Settings
@@ -589,56 +601,28 @@ with gr.Blocks() as demo:
                  settings_visible, settings_modal]
     )
 
-    # Run button: start script → stream output → refresh versions → load scripts → refresh graphs → refresh debug log
-    run_btn.click(
-        start_run,
-        inputs=[agent_dropdown, scripts_dropdown, chatbot, agent_dir_state, scripts_dir_state,
-                model_dropdown, model_map_state, mcp_tools_checkbox],
-        outputs=[chatbot, chat_input, send_btn]
-    ).then(
-        stream_output, inputs=[chatbot], outputs=[chatbot, chat_input, send_btn]
-    ).then(
-        refresh_versions, inputs=[agent_dir_state], outputs=[version_dropdown]
-    ).then(
-        load_version_scripts, inputs=[version_dropdown, agent_dir_state],
-        outputs=[scripts_dict, script_file_dropdown, output_script]
-    ).then(
-        load_graphs, inputs=[agent_dir_state], outputs=[graphs_gallery]
-    ).then(
-        fetch_debug_log, inputs=[agent_dir_state], outputs=[debug_log_box]
+    # Run button: start → stream → refresh panels
+    _with_refresh(
+        run_btn.click(
+            start_run,
+            inputs=[agent_dropdown, scripts_dropdown, chatbot, agent_dir_state, scripts_dir_state,
+                    model_dropdown, model_map_state, mcp_tools_checkbox],
+            outputs=[chatbot, chat_input, send_btn]
+        ).then(
+            stream_output, inputs=[chatbot], outputs=[chatbot, chat_input, send_btn]
+        )
     )
 
-    # Chat input: send to stdin → stream continued output
-    send_btn.click(
-        send_user_input, inputs=[chat_input, chatbot],
-        outputs=[chat_input, chatbot, send_btn]
-    ).then(
-        stream_output, inputs=[chatbot], outputs=[chatbot, chat_input, send_btn]
-    ).then(
-        refresh_versions, inputs=[agent_dir_state], outputs=[version_dropdown]
-    ).then(
-        load_version_scripts, inputs=[version_dropdown, agent_dir_state],
-        outputs=[scripts_dict, script_file_dropdown, output_script]
-    ).then(
-        load_graphs, inputs=[agent_dir_state], outputs=[graphs_gallery]
-    ).then(
-        fetch_debug_log, inputs=[agent_dir_state], outputs=[debug_log_box]
-    )
-    chat_input.submit(
-        send_user_input, inputs=[chat_input, chatbot],
-        outputs=[chat_input, chatbot, send_btn]
-    ).then(
-        stream_output, inputs=[chatbot], outputs=[chatbot, chat_input, send_btn]
-    ).then(
-        refresh_versions, inputs=[agent_dir_state], outputs=[version_dropdown]
-    ).then(
-        load_version_scripts, inputs=[version_dropdown, agent_dir_state],
-        outputs=[scripts_dict, script_file_dropdown, output_script]
-    ).then(
-        load_graphs, inputs=[agent_dir_state], outputs=[graphs_gallery]
-    ).then(
-        fetch_debug_log, inputs=[agent_dir_state], outputs=[debug_log_box]
-    )
+    # Chat input (send button + enter key): send to stdin → stream → refresh panels
+    for trigger in [send_btn.click, chat_input.submit]:
+        _with_refresh(
+            trigger(
+                send_user_input, inputs=[chat_input, chatbot],
+                outputs=[chat_input, chatbot, send_btn]
+            ).then(
+                stream_output, inputs=[chatbot], outputs=[chatbot, chat_input, send_btn]
+            )
+        )
 
     # Reset
     reset_btn.click(reset_ui, outputs=[chatbot, script_file_dropdown, output_script, chat_input, send_btn])
@@ -647,10 +631,8 @@ with gr.Blocks() as demo:
     script_file_dropdown.change(update_script_display, inputs=[script_file_dropdown, scripts_dict], outputs=output_script)
     version_dropdown.change(load_version_scripts, inputs=[version_dropdown, agent_dir_state], outputs=[scripts_dict, script_file_dropdown, output_script])
 
-    # Graphs
+    # Graphs / Debug log
     graphs_refresh_btn.click(load_graphs, inputs=[agent_dir_state], outputs=[graphs_gallery])
-
-    # Debug log
     debug_refresh_btn.click(fetch_debug_log, inputs=[agent_dir_state], outputs=[debug_log_box])
 
 
