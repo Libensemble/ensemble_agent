@@ -40,6 +40,7 @@ GENERATOR_PROMPT_FRAGMENT = (
 AUTONOMOUS_GOAL = """{initial_msg}
 
 After generating/loading scripts: review them, run them, and if they fail fix the error and retry.
+After a successful run, use check_results to inspect the output values.
 DO NOT make any other changes or improvements.
 DO NOT wrap in markdown or add explanations when fixing.
 Report the result."""

@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import numpy as np
+
 from ensemble_agent.archive import ArchiveManager
 
 # Config — set via init() for in-process use, or env vars for MCP server mode
@@ -192,7 +194,57 @@ def install_package(package_name: str) -> str:
         return f"ERROR: {e}"
 
 
-ALL_TOOLS = [read_file, write_file, list_files, run_script, generate_graphs, install_package]
+def check_results() -> str:
+    """Check optimization results from the latest run output (.npy file)."""
+    npy_files = glob.glob(str(WORK_DIR / "*.npy"))
+    if not npy_files:
+        return "No .npy output files found."
+    latest = max(npy_files, key=os.path.getmtime)
+    H = np.load(latest)
+    fields = H.dtype.names
+    summary = f"File: {os.path.basename(latest)}\n"
+    summary += f"Fields: {fields}\n"
+    summary += f"Total rows: {len(H)}\n"
+    for name in fields:
+        col = H[name]
+        if col.dtype.kind in ('f', 'i'):
+            summary += f"\n{name}: min={np.min(col):.6g}, max={np.max(col):.6g}, mean={np.mean(col):.6g}, unique={len(np.unique(col))}"
+    return summary
+
+
+def browse_directory(directory: str) -> str:
+    """List contents of a subdirectory in the working area (e.g. 'ensemble/sim_0')."""
+    target = WORK_DIR / directory
+    if not target.exists():
+        return f"Directory '{directory}' not found"
+    if not target.is_dir():
+        return f"'{directory}' is not a directory"
+    entries = sorted(target.iterdir())
+    if not entries:
+        return "Empty directory"
+    lines = []
+    for e in entries:
+        prefix = "[dir] " if e.is_dir() else "      "
+        lines.append(f"{prefix}{e.name}")
+    return "\n".join(lines)
+
+
+REFERENCE_DOCS_DIR = Path(__file__).parent / "reference_docs"
+
+
+def load_guide(topic: str) -> str:
+    """Load a reference guide by topic name (e.g. 'finding_objectives')."""
+    doc_path = REFERENCE_DOCS_DIR / f"{topic}.md"
+    if not doc_path.exists():
+        available = [f.stem for f in REFERENCE_DOCS_DIR.glob("*.md")]
+        return f"Guide '{topic}' not found. Available: {available}"
+    return doc_path.read_text()
+
+
+ALL_TOOLS = [
+    read_file, write_file, list_files, run_script, generate_graphs,
+    install_package, check_results, browse_directory, load_guide,
+]
 
 
 def get_langchain_tools():
