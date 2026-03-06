@@ -71,7 +71,7 @@ async def run_agent(config: AgentConfig):
                 gen_session = await stack.enter_async_context(connect_mcp(mcp_server))
                 print("Connected to generator MCP server")
                 gen_tools = await load_mcp_tools(gen_session)
-                gen_tool = _wrap_generator_tool(gen_tools[0], archive.work_dir)
+                gen_tool = _wrap_generator_tool(gen_tools[0], archive)
                 tools.append(gen_tool)
             except (FileNotFoundError, Exception) as e:
                 print(f"Generator MCP not available: {e}")
@@ -103,15 +103,32 @@ async def run_agent(config: AgentConfig):
             await _run_interactive(agent, messages, initial_msg, config, has_generator, debug)
 
 
-def _wrap_generator_tool(raw_tool, work_dir):
-    """Wrap the MCP generator tool to auto-save generated files."""
+def _extract_text(result):
+    """Extract text from MCP tool result, handling nested lists and content blocks."""
+    if result is None:
+        return ""
+    if isinstance(result, str):
+        return result
+    if isinstance(result, dict):
+        return result.get("text", "")
+    if isinstance(result, (list, tuple)):
+        return "".join(_extract_text(item) for item in result)
+    return ""
+
+
+def _wrap_generator_tool(raw_tool, archive):
+    """Wrap the MCP generator tool to save generated files and archive them."""
     original_coroutine = raw_tool.coroutine
+    work_dir = archive.work_dir
 
     async def wrapped(**kwargs):
         kwargs.pop("custom_set_objective", None)
         kwargs.pop("set_objective_code", None)
 
-        scripts_text = await original_coroutine(**kwargs)
+        result = await original_coroutine(**kwargs)
+
+        # Extract text from MCP content blocks (may be nested)
+        scripts_text = _extract_text(result)
 
         if scripts_text and "===" in scripts_text:
             work_dir.mkdir(exist_ok=True)
@@ -119,8 +136,10 @@ def _wrap_generator_tool(raw_tool, work_dir):
             for filename, content in re.findall(pattern, scripts_text, re.DOTALL):
                 (work_dir / filename.strip()).write_text(content.strip() + "\n")
                 print(f"- Saved: {work_dir / filename.strip()}", flush=True)
+            archive.start("generated")
+            archive.archive_scripts()
 
-        return scripts_text
+        return result
 
     return StructuredTool(
         name=raw_tool.name,
