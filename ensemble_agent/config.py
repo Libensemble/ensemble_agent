@@ -88,6 +88,9 @@ class AgentConfig:
     max_iterations: int = MAX_AGENT_ITERATIONS
     script_timeout: int = SCRIPT_TIMEOUT
 
+    # Permissions
+    allow_install: bool = False
+
     def get_user_prompt(self) -> Optional[str]:
         """Resolve the user prompt from --prompt, --prompt-file, or default."""
         if self.scripts_dir:
@@ -126,6 +129,7 @@ Examples:
     parser.add_argument("--show-prompts", action="store_true", help="Print prompts sent to AI")
     parser.add_argument("--debug", action="store_true", help="Dump full message log to debug_log.txt")
     parser.add_argument("--max-iterations", type=int, default=MAX_AGENT_ITERATIONS, help="Max agent iterations")
+    parser.add_argument("--allow-install", action="store_true", help="Allow agent to pip install packages in autonomous mode")
     args = parser.parse_args(argv)
 
     config = AgentConfig(
@@ -142,5 +146,7 @@ Examples:
     )
     if args.model:
         config.model = args.model
+    if args.allow_install:
+        config.allow_install = True
 
     return config

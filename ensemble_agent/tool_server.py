@@ -15,16 +15,20 @@ ARCHIVE = None
 MAX_RUNS = 3
 TIMEOUT = 300
 run_count = 0
+INTERACTIVE = False
+ALLOW_INSTALL = False
 
 
 def init(config, archive):
     """Initialize tools for in-process use."""
-    global WORK_DIR, ARCHIVE, MAX_RUNS, TIMEOUT, run_count
+    global WORK_DIR, ARCHIVE, MAX_RUNS, TIMEOUT, run_count, INTERACTIVE, ALLOW_INSTALL
     WORK_DIR = archive.work_dir
     ARCHIVE = archive
     MAX_RUNS = config.max_runs
     TIMEOUT = config.script_timeout
     run_count = 0
+    INTERACTIVE = config.interactive
+    ALLOW_INSTALL = config.allow_install
 
 
 def read_file(filepath: str) -> str:
@@ -161,7 +165,34 @@ def generate_graphs() -> str:
     )
 
 
-ALL_TOOLS = [read_file, write_file, list_files, run_script, generate_graphs]
+def install_package(package_name: str) -> str:
+    """Install a Python package using pip."""
+    if not INTERACTIVE and not ALLOW_INSTALL:
+        return (
+            f"Cannot install '{package_name}' in autonomous mode. "
+            "Use --allow-install or run in interactive mode."
+        )
+    print(f"Installing {package_name}...", file=sys.stderr, flush=True)
+    try:
+        result = subprocess.run(
+            [sys.executable, "-m", "pip", "install", package_name],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        if result.returncode == 0:
+            print(f"Installed {package_name}", file=sys.stderr, flush=True)
+            return f"SUCCESS: Installed {package_name}"
+        else:
+            print(f"Failed to install {package_name}", file=sys.stderr, flush=True)
+            return f"FAILED: {result.stderr[:500]}"
+    except subprocess.TimeoutExpired:
+        return f"ERROR: Installation timed out for {package_name}"
+    except Exception as e:
+        return f"ERROR: {e}"
+
+
+ALL_TOOLS = [read_file, write_file, list_files, run_script, generate_graphs, install_package]
 
 
 def get_langchain_tools():
@@ -179,6 +210,8 @@ if __name__ == "__main__":
     ARCHIVE = ArchiveManager(str(WORK_DIR))
     MAX_RUNS = int(os.environ.get("TOOL_MAX_RUNS", "3"))
     TIMEOUT = int(os.environ.get("TOOL_SCRIPT_TIMEOUT", "300"))
+    INTERACTIVE = os.environ.get("TOOL_INTERACTIVE", "").lower() in ("1", "true")
+    ALLOW_INSTALL = os.environ.get("TOOL_ALLOW_INSTALL", "").lower() in ("1", "true")
 
     mcp = FastMCP("ensemble-tools")
     for fn in ALL_TOOLS:
