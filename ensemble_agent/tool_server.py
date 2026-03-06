@@ -15,18 +15,16 @@ ARCHIVE = None
 MAX_RUNS = 3
 TIMEOUT = 300
 run_count = 0
-succeeded = False
 
 
 def init(config, archive):
     """Initialize tools for in-process use."""
-    global WORK_DIR, ARCHIVE, MAX_RUNS, TIMEOUT, run_count, succeeded
+    global WORK_DIR, ARCHIVE, MAX_RUNS, TIMEOUT, run_count
     WORK_DIR = archive.work_dir
     ARCHIVE = archive
     MAX_RUNS = config.max_runs
     TIMEOUT = config.script_timeout
     run_count = 0
-    succeeded = False
 
 
 def read_file(filepath: str) -> str:
@@ -39,8 +37,6 @@ def read_file(filepath: str) -> str:
 
 def write_file(filepath: str, content: str) -> str:
     """Write/overwrite a file to fix scripts."""
-    if ARCHIVE.run_succeeded:
-        return "Script already ran successfully. No further changes needed."
     try:
         file_path = WORK_DIR / filepath
         old_lines = file_path.read_text().splitlines() if file_path.exists() else []
@@ -75,10 +71,8 @@ def list_files() -> str:
 
 def run_script(script_name: str) -> str:
     """Run a Python script. Returns SUCCESS or FAILED with error details."""
-    global run_count, succeeded
+    global run_count
 
-    if succeeded:
-        return "Script already ran successfully. Do not run again."
     run_count += 1
     if run_count > MAX_RUNS:
         return "Run limit reached. Stop and report current status."
@@ -97,8 +91,6 @@ def run_script(script_name: str) -> str:
             timeout=TIMEOUT,
         )
         if result.returncode == 0:
-            succeeded = True
-            ARCHIVE.run_succeeded = True
             print("Script ran successfully", file=sys.stderr, flush=True)
             return f"SUCCESS\nOutput:\n{result.stdout[:500]}"
         else:

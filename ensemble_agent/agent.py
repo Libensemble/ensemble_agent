@@ -150,8 +150,9 @@ def _build_initial_message(config, archive):
 
     if config.interactive:
         print("Describe the scripts you want to generate (or press Enter for default demo):", flush=True)
-        print(INPUT_MARKER, flush=True)
-        user_input = input().strip()
+        if not sys.stdout.isatty():
+            print(INPUT_MARKER, flush=True)
+        user_input = input(">>> ").strip()
         if user_input:
             return user_input
 
@@ -182,7 +183,10 @@ async def _run_autonomous(agent, messages, initial_msg, config, debug):
 
 async def _run_interactive(agent, messages, initial_msg, config, has_generator, debug):
     """Chat loop — agent responds, waits for user input, repeats."""
-    if has_generator:
+    if config.scripts_dir:
+        # Auto-review, fix, run scripts first, then enter chat
+        goal = AUTONOMOUS_GOAL.format(initial_msg=initial_msg)
+    elif has_generator:
         goal = INTERACTIVE_GOAL.format(initial_msg=initial_msg)
     else:
         goal = initial_msg
@@ -206,10 +210,12 @@ async def _run_interactive(agent, messages, initial_msg, config, has_generator, 
             print(f"\nAgent error: {e}", flush=True)
 
         # Wait for user input
-        print(INPUT_MARKER, flush=True)
-        user_input = input().strip()
+        print("\nEnter a follow-up request (or Enter to quit):", flush=True)
+        if not sys.stdout.isatty():
+            print(INPUT_MARKER, flush=True)
+        user_input = input(">>> ").strip()
 
-        if not user_input or user_input.lower() in ("quit", "exit", "done"):
+        if not user_input or user_input.lower() in ("q", "quit", "exit", "done"):
             print("\nSession ended")
             break
 

@@ -70,6 +70,5 @@ AGENT_DEBUG                           # Enable debug logging
 - `streaming=True` on ChatAnthropic required for Argo gateway.
 - Anthropic streaming returns list content — `isinstance(content, list)` check extracts text.
 - Generator tool auto-excluded when `--scripts` is passed.
-- Run limits enforced in runner.py code (`_succeeded` flag, `_max_runs` counter), not in prompts.
-- `file_ops.py` blocks writes after successful run via `archive.run_succeeded` flag.
+- Run limits enforced in tool_server.py (`_max_runs` counter). Prompts guide stop-after-success behavior.
 - Existing `generated_scripts/` moved to `archive_runs/` before each fresh run.

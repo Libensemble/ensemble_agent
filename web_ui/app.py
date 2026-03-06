@@ -40,6 +40,17 @@ class Session:
                 "content": f.read_text()
             })
 
+    def stop(self):
+        """Terminate the running subprocess."""
+        if self.process and self.process.poll() is None:
+            self.process.terminate()
+            try:
+                self.process.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+                self.process.wait(timeout=2)
+            self.output_queue.put(("exit", -15))
+
     def send_input(self, text):
         """Send text to the running process's stdin (flattened to one line for input())"""
         if self.process and self.process.stdin:
@@ -79,10 +90,9 @@ class Session:
         run_dir = Path(agent_dir) if agent_dir else AGENT_DIR
         cmd = [sys.executable, agent_script]
 
+        cmd.append("--interactive")
         if scripts_dir:
             cmd.extend(["--scripts", scripts_dir])
-        else:
-            cmd.append("--interactive")
 
         if mcp_tools:
             cmd.append("--mcp-tools")
@@ -175,10 +185,14 @@ async def ws_endpoint(ws: WebSocket, session_id: str):
             raw = await ws.receive_text()
             msg = json.loads(raw)
 
-            if msg.get("type") == "input":
+            if msg.get("type") == "stop":
+                s.stop()
+                continue
+            elif msg.get("type") == "input":
                 s.send_input(msg.get("text", ""))
             else:
-                # Run agent as background task so we can keep receiving input
+                # Kill any existing subprocess before starting a new run
+                s.stop()
                 if agent_task and not agent_task.done():
                     agent_task.cancel()
                 agent_task = asyncio.create_task(
@@ -193,5 +207,6 @@ async def ws_endpoint(ws: WebSocket, session_id: str):
                     )
                 )
     except WebSocketDisconnect:
+        s.stop()
         if agent_task and not agent_task.done():
             agent_task.cancel()

@@ -475,7 +475,7 @@ with gr.Blocks() as demo:
                         yield history, *disabled
 
                         if text.startswith("done:") or text.startswith("stopped"):
-                            yield history, *_input_enabled("Type prompt or response here...")
+                            yield history, *_input_disabled("Agent finished. Start a new run or reset.")
                             return
 
                 elif msg_type == "error":
@@ -567,6 +567,7 @@ with gr.Blocks() as demo:
         return [str(p) for p in pngs]
 
     def reset_ui():
+        message_queue.put(json.dumps({"type": "stop"}))
         _drain_queue(output_queue)
         _drain_queue(message_queue)
         return [], gr.update(choices=[], value=None), "", *_input_enabled("Type prompt or response here...")

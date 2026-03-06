@@ -15,7 +15,6 @@ class ArchiveManager:
         self.work_dir.mkdir(parents=True, exist_ok=True)
         self._counter = 1
         self._current = None
-        self.run_succeeded = False
 
     @property
     def current_archive(self):
