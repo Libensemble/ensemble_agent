@@ -391,12 +391,18 @@ with gr.Blocks() as demo:
 
     # --- Core event handlers ---
 
+    def _input_disabled(placeholder="Agent is working..."):
+        return gr.update(interactive=False, placeholder=placeholder), gr.update(interactive=False)
+
+    def _input_enabled(placeholder="Type your response..."):
+        return gr.update(interactive=True, placeholder=placeholder), gr.update(interactive=True)
+
     def start_run(agent_script, scripts_dir, history, agent_dir_val, scripts_dir_val,
                   model_label, model_map, mcp_tools):
         """Send run command and add user message to chat"""
         if not agent_script:
             history = history + [{"role": "assistant", "content": "⚠️ No agent script selected"}]
-            return history
+            return history, *_input_enabled("Type prompt or response here...")
 
         # Resolve model from dropdown selection
         if model_label and model_label in model_map:
@@ -409,7 +415,7 @@ with gr.Blocks() as demo:
         api_err = _check_api(model=sel_model, base_url=sel_base_url or None)
         if api_err:
             history = history + [{"role": "assistant", "content": api_err}]
-            return history
+            return history, *_input_enabled("Type prompt or response here...")
 
         agent_dir = Path(agent_dir_val) if agent_dir_val else DEFAULT_AGENT_DIR
         scripts_base = Path(scripts_dir_val) if scripts_dir_val else DEFAULT_TESTS_DIR
@@ -428,7 +434,7 @@ with gr.Blocks() as demo:
 
         if not ws_thread or not ws_thread.is_alive():
             history = history + [{"role": "assistant", "content": "⚠️ Websocket not connected. Try refreshing."}]
-            return history
+            return history, *_input_enabled("Type prompt or response here...")
 
         message_queue.put(json.dumps({
             "type": "run",
@@ -439,13 +445,14 @@ with gr.Blocks() as demo:
             "openai_base_url": sel_base_url,
             "mcp_tools": bool(mcp_tools),
         }))
-        return history
+        return history, *_input_disabled()
 
     def stream_output(history):
         """Stream script output as assistant messages. Stops when input is requested or script finishes."""
         history = history + [{"role": "assistant", "content": ""}]
         start = time.time()
         timeout = 300
+        disabled = _input_disabled()
 
         while (time.time() - start) < timeout:
             try:
@@ -461,18 +468,19 @@ with gr.Blocks() as demo:
                             clean = text.replace(INPUT_MARKER, "").strip()
                             if clean:
                                 history[-1]["content"] += clean + "\n"
-                            yield history
+                            yield history, *_input_enabled()
                             return
 
                         history[-1]["content"] += text + "\n"
-                        yield history
+                        yield history, *disabled
 
                         if text.startswith("done:") or text.startswith("stopped"):
+                            yield history, *_input_enabled("Type prompt or response here...")
                             return
 
                 elif msg_type == "error":
                     history[-1]["content"] += f"⚠️ {data}\n"
-                    yield history
+                    yield history, *_input_enabled("Type prompt or response here...")
                     return
 
                 elif msg_type == "status":
@@ -480,7 +488,7 @@ with gr.Blocks() as demo:
                     pass
 
             except Empty:
-                yield history
+                yield history, *disabled
 
     def send_user_input(text, history):
         """Send user response to the running script's stdin"""
@@ -490,7 +498,7 @@ with gr.Blocks() as demo:
             history = history + [{"role": "user", "content": user_text}]
         else:
             history = history + [{"role": "user", "content": "↵"}]
-        return "", history
+        return gr.update(value="", interactive=False, placeholder="Agent is working..."), history, gr.update(interactive=False)
 
     # --- Settings handlers ---
 
@@ -561,7 +569,7 @@ with gr.Blocks() as demo:
     def reset_ui():
         _drain_queue(output_queue)
         _drain_queue(message_queue)
-        return [], gr.update(choices=[], value=None), ""
+        return [], gr.update(choices=[], value=None), "", *_input_enabled("Type prompt or response here...")
 
     scripts_dict = gr.State(value={})
 
@@ -585,9 +593,9 @@ with gr.Blocks() as demo:
         start_run,
         inputs=[agent_dropdown, scripts_dropdown, chatbot, agent_dir_state, scripts_dir_state,
                 model_dropdown, model_map_state, mcp_tools_checkbox],
-        outputs=[chatbot]
+        outputs=[chatbot, chat_input, send_btn]
     ).then(
-        stream_output, inputs=[chatbot], outputs=[chatbot]
+        stream_output, inputs=[chatbot], outputs=[chatbot, chat_input, send_btn]
     ).then(
         refresh_versions, inputs=[agent_dir_state], outputs=[version_dropdown]
     ).then(
@@ -601,9 +609,10 @@ with gr.Blocks() as demo:
 
     # Chat input: send to stdin → stream continued output
     send_btn.click(
-        send_user_input, inputs=[chat_input, chatbot], outputs=[chat_input, chatbot]
+        send_user_input, inputs=[chat_input, chatbot],
+        outputs=[chat_input, chatbot, send_btn]
     ).then(
-        stream_output, inputs=[chatbot], outputs=[chatbot]
+        stream_output, inputs=[chatbot], outputs=[chatbot, chat_input, send_btn]
     ).then(
         refresh_versions, inputs=[agent_dir_state], outputs=[version_dropdown]
     ).then(
@@ -615,9 +624,10 @@ with gr.Blocks() as demo:
         fetch_debug_log, inputs=[agent_dir_state], outputs=[debug_log_box]
     )
     chat_input.submit(
-        send_user_input, inputs=[chat_input, chatbot], outputs=[chat_input, chatbot]
+        send_user_input, inputs=[chat_input, chatbot],
+        outputs=[chat_input, chatbot, send_btn]
     ).then(
-        stream_output, inputs=[chatbot], outputs=[chatbot]
+        stream_output, inputs=[chatbot], outputs=[chatbot, chat_input, send_btn]
     ).then(
         refresh_versions, inputs=[agent_dir_state], outputs=[version_dropdown]
     ).then(
@@ -630,7 +640,7 @@ with gr.Blocks() as demo:
     )
 
     # Reset
-    reset_btn.click(reset_ui, outputs=[chatbot, script_file_dropdown, output_script])
+    reset_btn.click(reset_ui, outputs=[chatbot, script_file_dropdown, output_script, chat_input, send_btn])
 
     # Scripts panel
     script_file_dropdown.change(update_script_display, inputs=[script_file_dropdown, scripts_dict], outputs=output_script)
