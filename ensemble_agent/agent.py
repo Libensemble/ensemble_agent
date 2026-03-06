@@ -15,7 +15,7 @@ from .archive import ArchiveManager
 from .config import AgentConfig, INPUT_MARKER
 from .debug import DebugLogger
 from .llm import create_llm
-from .mcp_client import connect_mcp, find_mcp_server
+from .mcp_client import connect_mcp, connect_tool_server, find_mcp_server
 from .prompts import (
     AUTONOMOUS_GOAL,
     INTERACTIVE_GOAL,
@@ -50,14 +50,20 @@ async def run_agent(config: AgentConfig):
         log_path = Path(config.output_dir) / "debug_log.txt"
         debug = DebugLogger(log_path, model=config.model)
 
-    # Initialize and load local tools (in-process)
-    tool_server.init(config, archive)
-    tools = tool_server.get_langchain_tools()
-
     has_generator = not config.scripts_dir
 
-    # MCP setup for generator
     async with AsyncExitStack() as stack:
+        # Load local tools
+        if config.mcp_tools:
+            # MCP mode: run tools as FastMCP subprocess
+            tool_session = await stack.enter_async_context(connect_tool_server(config))
+            tools = await load_mcp_tools(tool_session)
+        else:
+            # In-process mode (default)
+            tool_server.init(config, archive)
+            tools = tool_server.get_langchain_tools()
+
+        # Connect to generator MCP (if available)
         if has_generator:
             try:
                 mcp_server = find_mcp_server(config.mcp_server)

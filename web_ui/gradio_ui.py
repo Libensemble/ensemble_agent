@@ -328,6 +328,7 @@ with gr.Blocks() as demo:
             agent_dir_input = gr.Textbox(label="Agent Directory", value=str(DEFAULT_AGENT_DIR))
             scripts_dir_input = gr.Textbox(label="Scripts Parent Directory", value=str(DEFAULT_TESTS_DIR))
             agent_pattern_input = gr.Textbox(label="Agent Script Pattern", value=DEFAULT_AGENT_PATTERN)
+            mcp_tools_checkbox = gr.Checkbox(label="Use FastMCP tool server (--mcp-tools)", value=False)
             with gr.Row():
                 apply_settings_btn = gr.Button("Apply", variant="primary", size="sm")
                 close_settings_btn = gr.Button("Close", size="sm")
@@ -391,7 +392,7 @@ with gr.Blocks() as demo:
     # --- Core event handlers ---
 
     def start_run(agent_script, scripts_dir, history, agent_dir_val, scripts_dir_val,
-                  model_label, model_map):
+                  model_label, model_map, mcp_tools):
         """Send run command and add user message to chat"""
         if not agent_script:
             history = history + [{"role": "assistant", "content": "⚠️ No agent script selected"}]
@@ -436,6 +437,7 @@ with gr.Blocks() as demo:
             "agent_dir": str(agent_dir),
             "llm_model": sel_model,
             "openai_base_url": sel_base_url,
+            "mcp_tools": bool(mcp_tools),
         }))
         return history
 
@@ -582,7 +584,7 @@ with gr.Blocks() as demo:
     run_btn.click(
         start_run,
         inputs=[agent_dropdown, scripts_dropdown, chatbot, agent_dir_state, scripts_dir_state,
-                model_dropdown, model_map_state],
+                model_dropdown, model_map_state, mcp_tools_checkbox],
         outputs=[chatbot]
     ).then(
         stream_output, inputs=[chatbot], outputs=[chatbot]

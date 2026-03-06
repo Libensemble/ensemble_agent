@@ -4,7 +4,6 @@ import difflib
 import glob
 import os
 import subprocess
-import sys
 from pathlib import Path
 
 from ensemble_agent.archive import ArchiveManager
@@ -54,11 +53,9 @@ def write_file(filepath: str, content: str) -> str:
 
         if changed and len(changed) <= 3:
             summary = "; ".join(l[1:].strip() for l in changed)
-            print(f"- Fixed: {filepath} ({summary})", flush=True)
+            return f"SUCCESS: Wrote {filepath} ({summary})"
         elif changed:
-            print(f"- Fixed: {filepath} ({len(changed)} lines changed)", flush=True)
-        else:
-            print(f"- Saved: {filepath}", flush=True)
+            return f"SUCCESS: Wrote {filepath} ({len(changed)} lines changed)"
         return f"SUCCESS: Wrote {filepath}"
     except Exception as e:
         return f"ERROR: {e}"
@@ -86,7 +83,6 @@ def run_script(script_name: str) -> str:
     if not script_path.exists():
         return f"ERROR: Script '{script_name}' not found"
 
-    print(f"\nRunning {script_name}...", flush=True)
     try:
         result = subprocess.run(
             ["python", script_name],
@@ -98,7 +94,6 @@ def run_script(script_name: str) -> str:
         if result.returncode == 0:
             succeeded = True
             ARCHIVE.run_succeeded = True
-            print("Script ran successfully", flush=True)
             return f"SUCCESS\nOutput:\n{result.stdout[:500]}"
         else:
             error_msg = (
@@ -106,9 +101,6 @@ def run_script(script_name: str) -> str:
                 f"Stderr: {result.stderr}\n"
                 f"Stdout: {result.stdout}"
             )
-            print(f"Failed (code {result.returncode})", flush=True)
-            if result.stderr:
-                print(f"Error output:\n{result.stderr[:500]}", flush=True)
             ARCHIVE.archive_run_output(error_msg)
             return (
                 f"FAILED (code {result.returncode})\n"

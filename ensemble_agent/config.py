@@ -76,6 +76,7 @@ class AgentConfig:
 
     # MCP servers
     mcp_server: Optional[str] = None
+    mcp_tools: bool = False
 
     # Output
     output_dir: str = DEFAULT_OUTPUT_DIR
@@ -120,6 +121,7 @@ Examples:
     parser.add_argument("--prompt-file", help="Read prompt from file")
     parser.add_argument("--model", default=None, help="LLM model name")
     parser.add_argument("--mcp-server", help="Path to generator mcp_server.mjs")
+    parser.add_argument("--mcp-tools", action="store_true", help="Run local tools as FastMCP server (subprocess)")
     parser.add_argument("--generate-only", action="store_true", help="Only generate scripts, don't run")
     parser.add_argument("--show-prompts", action="store_true", help="Print prompts sent to AI")
     parser.add_argument("--debug", action="store_true", help="Dump full message log to debug_log.txt")
@@ -133,6 +135,7 @@ Examples:
         prompt=args.prompt,
         prompt_file=args.prompt_file,
         mcp_server=args.mcp_server,
+        mcp_tools=args.mcp_tools,
         show_prompts=args.show_prompts,
         debug=args.debug or bool(os.environ.get("AGENT_DEBUG")),
         max_iterations=args.max_iterations,

@@ -75,7 +75,7 @@ class Session:
             self.process = None
 
     async def run_agent(self, agent_script, scripts_dir, ws, agent_dir=None,
-                        llm_model=None, openai_base_url=None):
+                        llm_model=None, openai_base_url=None, mcp_tools=False):
         run_dir = Path(agent_dir) if agent_dir else AGENT_DIR
         cmd = [sys.executable, agent_script]
 
@@ -83,6 +83,9 @@ class Session:
             cmd.extend(["--scripts", scripts_dir])
         else:
             cmd.append("--interactive")
+
+        if mcp_tools:
+            cmd.append("--mcp-tools")
 
         await self._log(ws, f"started: {' '.join(cmd)}")
 
@@ -186,6 +189,7 @@ async def ws_endpoint(ws: WebSocket, session_id: str):
                         agent_dir=msg.get("agent_dir"),
                         llm_model=msg.get("llm_model"),
                         openai_base_url=msg.get("openai_base_url"),
+                        mcp_tools=msg.get("mcp_tools", False),
                     )
                 )
     except WebSocketDisconnect:

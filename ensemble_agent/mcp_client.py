@@ -38,6 +38,27 @@ def find_mcp_server(user_path=None):
 
 
 @asynccontextmanager
+async def connect_tool_server(config):
+    """Start and connect to the local FastMCP tool server."""
+    server_path = Path(__file__).parent / "tool_server.py"
+    env = {
+        **os.environ,
+        "TOOL_WORK_DIR": str(Path(config.output_dir).resolve()),
+        "TOOL_MAX_RUNS": str(config.max_runs),
+        "TOOL_SCRIPT_TIMEOUT": str(config.script_timeout),
+    }
+    server_params = StdioServerParameters(
+        command=sys.executable,
+        args=[str(server_path)],
+        env=env,
+    )
+    async with stdio_client(server_params) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            yield session
+
+
+@asynccontextmanager
 async def connect_mcp(server_path):
     """Async context manager that yields an initialized MCP ClientSession."""
     suffix = Path(server_path).suffix
