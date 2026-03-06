@@ -156,7 +156,7 @@ def _build_initial_message(config, archive):
         if user_input:
             return user_input
 
-    print("Using demo prompt")
+    print(f"Using demo prompt:\n{DEFAULT_PROMPT}\n")
     return DEFAULT_PROMPT
 
 
