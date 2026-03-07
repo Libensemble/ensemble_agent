@@ -76,7 +76,7 @@ With `gen_on_manager=True`, the persistent generator runs on the manager process
 | `scipy_COBYLA` | No | [1] |
 | `scipy_BFGS` | Yes | [0] |
 
-### NLopt (requires `pip install nlopt`)
+### NLopt (requires nlopt package)
 
 | Method | Gradient? | Description |
 |--------|-----------|-------------|
@@ -87,7 +87,7 @@ With `gen_on_manager=True`, the persistent generator runs on the manager process
 | `LN_NELDERMEAD` | No | Classic simplex |
 | `LD_MMA` | Yes | Method of Moving Asymptotes |
 
-### PETSc/TAO (requires `pip install petsc4py`)
+### PETSc/TAO (requires petsc4py package)
 
 | Method | Needs | Description |
 |--------|-------|-------------|
@@ -95,7 +95,7 @@ With `gen_on_manager=True`, the persistent generator runs on the manager process
 | `blmvm` | grad | Bounded limited-memory variable metric |
 | `nm` | f only | Nelder-Mead variant |
 
-### DFO-LS (requires `pip install dfols`)
+### DFO-LS (requires dfols package)
 
 | Method | Needs | Description |
 |--------|-------|-------------|
@@ -112,12 +112,23 @@ With `gen_on_manager=True`, the persistent generator runs on the manager process
 
 ## Interpreting Results
 
-After a run, report the number of minima found. In the results `.npy` file:
-- `local_min`: boolean field — rows where `local_min == True` are the identified local minima.
-- Count these to report how many minima APOSMM found.
-- Report the objective value (`f`) and location (`x`) of each minimum.
+After a run, report the number of minima found. Use `run_python` to query the results
+`.npy` file — filter by `sim_ended == True`, then check `local_min == True` rows.
+Report the count, objective value, and location of each minimum.
 
-Only consider rows where `sim_ended == True` (see results_metadata guide).
+## Tuning
+
+If APOSMM is not finding minima, try increasing `rk_const` to make it more aggressive
+about starting new local optimization runs in different regions. A recommended formula
+that scales with dimension:
+
+```python
+from math import gamma, pi, sqrt
+rk_const = 0.5 * ((gamma(1 + (n / 2)) * 5) ** (1 / n)) / sqrt(pi)
+```
+
+where `n` is the problem dimension. Also consider increasing `dist_to_bound_multiple`
+(e.g., 0.5) for a larger initial step size.
 
 ## Important
 
