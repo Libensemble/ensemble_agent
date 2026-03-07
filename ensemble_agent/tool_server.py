@@ -243,9 +243,22 @@ def load_guide(topic: str) -> str:
     return doc_path.read_text()
 
 
+def run_python(code: str) -> str:
+    """Execute a Python snippet and return its stdout. numpy is available as np. Runs in the working directory."""
+    import io
+    import contextlib
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf):
+            exec(code, {"np": np, "__builtins__": __builtins__}, {"WORK_DIR": WORK_DIR})
+    except Exception as e:
+        return f"ERROR: {e}"
+    return buf.getvalue()
+
+
 ALL_TOOLS = [
     read_file, write_file, list_files, run_script, generate_graphs,
-    install_package, check_results, browse_directory, load_guide,
+    install_package, check_results, browse_directory, load_guide, run_python,
 ]
 
 
