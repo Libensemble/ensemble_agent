@@ -354,7 +354,9 @@ with gr.Blocks() as demo:
             placeholder="Type prompt or response here...",
             show_label=False, scale=4, lines=1
         )
-        send_btn = gr.Button("Send", scale=0, min_width=80)
+        with gr.Column(scale=0, min_width=80):
+            send_btn = gr.Button("Send", scale=0, min_width=80)
+            save_btn = gr.Button("💾 Save", size="sm")
 
     with gr.Tabs():
         with gr.Tab("Scripts"):
@@ -565,6 +567,25 @@ with gr.Blocks() as demo:
         pngs = sorted(graphs_dir.glob("*.png"), key=lambda p: p.stat().st_mtime, reverse=True)
         return [str(p) for p in pngs]
 
+    def save_conversation(history, agent_dir_val):
+        agent_dir = Path(agent_dir_val) if agent_dir_val else DEFAULT_AGENT_DIR
+        save_dir = agent_dir / DEFAULT_OUTPUT_DIR
+        save_dir.mkdir(exist_ok=True)
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        save_path = save_dir / f"conversation_{timestamp}.txt"
+        with open(save_path, "w") as f:
+            for msg in history:
+                role = msg.get("role", "unknown")
+                content = msg.get("content", "")
+                if isinstance(content, list):
+                    content = "".join(
+                        block.get("text", "") if isinstance(block, dict) else str(block)
+                        for block in content
+                    )
+                f.write(f"{role}: {content}\n\n")
+        return history + [{"role": "assistant", "content": f"💾 Saved to {save_path.name}"}]
+
     def reset_ui():
         message_queue.put(json.dumps({"type": "stop"}))
         _drain_queue(output_queue)
@@ -624,7 +645,8 @@ with gr.Blocks() as demo:
             )
         )
 
-    # Reset
+    # Save / Reset
+    save_btn.click(save_conversation, inputs=[chatbot, agent_dir_state], outputs=[chatbot])
     reset_btn.click(reset_ui, outputs=[chatbot, script_file_dropdown, output_script, chat_input, send_btn])
 
     # Scripts panel
