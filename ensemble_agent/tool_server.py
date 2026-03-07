@@ -34,16 +34,18 @@ def init(config, archive):
 
 
 def read_file(filepath: str) -> str:
-    """Read a file to inspect its contents."""
-    file_path = WORK_DIR / filepath
+    """Read a file. Accepts a filename in the working directory or an absolute path."""
+    file_path = Path(filepath) if Path(filepath).is_absolute() else WORK_DIR / filepath
     if not file_path.exists():
         return f"ERROR: File '{filepath}' not found"
     return file_path.read_text()
 
 
 def write_file(filepath: str, content: str) -> str:
-    """Write/overwrite a file to fix scripts."""
+    """Write/overwrite a file in the working directory."""
     try:
+        if Path(filepath).is_absolute():
+            return "ERROR: Cannot write to absolute paths. Use a filename to write in the working directory."
         file_path = WORK_DIR / filepath
         old_lines = file_path.read_text().splitlines() if file_path.exists() else []
         new_lines = content.splitlines()
@@ -233,7 +235,7 @@ REFERENCE_DOCS_DIR = Path(__file__).parent / "reference_docs"
 
 
 def load_guide(topic: str) -> str:
-    """Load a reference guide by topic name (e.g. 'finding_objectives')."""
+    """Load a reference guide by topic name."""
     doc_path = REFERENCE_DOCS_DIR / f"{topic}.md"
     if not doc_path.exists():
         available = [f.stem for f in REFERENCE_DOCS_DIR.glob("*.md")]

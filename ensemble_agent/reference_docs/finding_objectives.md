@@ -1,4 +1,5 @@
 # Finding Objective Fields
+How to find objective field names in sim_specs outputs and results files.
 
 ## libEnsemble scripts
 

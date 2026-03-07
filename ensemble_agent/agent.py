@@ -32,7 +32,7 @@ DEFAULT_PROMPT = f"""Create six_hump_camel APOSMM scripts:
 - Template vars: X0, X1
 - 4 workers, 100 sims.
 - The output file for each simulation is output.txt
-- The bounds should be 0,1 and -1,2 for X0 and X1 respectively"""
+- The bounds should be -3,3 and -2,2 for X0 and X1 respectively"""
 
 
 async def run_agent(config: AgentConfig):
