@@ -238,4 +238,5 @@ async def _run_interactive(agent, messages, initial_msg, config, has_generator, 
             print("\nSession ended")
             break
 
+        tool_server.run_count = 0
         messages.append(HumanMessage(content=user_input))

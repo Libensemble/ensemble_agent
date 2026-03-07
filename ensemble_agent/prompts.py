@@ -31,6 +31,11 @@ GRAPHS_PROMPT_FRAGMENT = (
     "from the .npy and .pickle output files."
 )
 
+RESULTS_PROMPT_FRAGMENT = (
+    "After running scripts, use check_results to inspect the output values. "
+    "Flag anything suspicious (e.g., all objective values are zero or identical)."
+)
+
 GENERATOR_PROMPT_FRAGMENT = (
     "You have a CreateLibEnsembleScripts tool. "
     "Use it ONCE to generate initial scripts. "
@@ -61,7 +66,7 @@ INTERACTIVE_REVIEW_GOAL = """I have existing scripts. The main script is '{run_s
 def build_system_prompt(has_generator):
     """Assemble the system prompt."""
     generator_rules = GENERATOR_RULES if has_generator else NO_GENERATOR_RULES
-    fragments = [GRAPHS_PROMPT_FRAGMENT]
+    fragments = [GRAPHS_PROMPT_FRAGMENT, RESULTS_PROMPT_FRAGMENT]
     if has_generator:
         fragments.append(GENERATOR_PROMPT_FRAGMENT)
     reference_context = "\n\n".join(fragments)
