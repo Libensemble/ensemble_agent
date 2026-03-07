@@ -22,14 +22,21 @@ completed simulations:
 ```python
 H = np.load("results.npy")
 done = H[H["sim_ended"]]  # Only completed simulations
-best_f = done["f"].min()
 ```
 
 Rows where `sim_ended` is False may have default/zero values that are not real results.
 This is common for the last few rows when the simulation budget is exhausted — they were
 allocated by the generator but never evaluated.
 
+## Reporting results
+
+After a successful run, report any minima found in the results. See the generator-specific
+guide for which fields indicate identified minima.
+
 ## Common pitfall
 
-If the minimum objective value is exactly 0.0 and appears suspicious, check whether those
-rows have `sim_ended == True`. Unevaluated rows often have fields initialized to zero.
+If the minimum objective value is exactly 0.0, check whether those rows have
+`sim_ended == True`. Unevaluated rows often have fields initialized to zero.
+This is common for the last few rows when the simulation budget is exhausted — they were
+allocated by the generator but never evaluated.
+

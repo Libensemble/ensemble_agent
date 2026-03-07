@@ -48,7 +48,7 @@ GENERATOR_PROMPT_FRAGMENT = (
 
 AUTONOMOUS_GOAL = """{initial_msg}
 
-After generating/loading scripts: review them, run them, and if they fail fix the error and retry.
+After generating/loading scripts: review them. Load the guide for the generator being used, or load_guide('generators') for an overview. If an input file is referenced, read it and verify it has Jinja2 template markers matching the script's input_names — if not, create a templated copy. Then run the scripts, and if they fail fix the error and retry.
 After a successful run, use check_results to inspect the output values.
 DO NOT make any other changes or improvements.
 DO NOT wrap in markdown or add explanations when fixing.
@@ -59,10 +59,11 @@ INTERACTIVE_GOAL = """User request: {initial_msg}
 Instructions:
 1. Use CreateLibEnsembleScripts to generate the initial scripts.
 2. Read each generated script using read_file.
-3. Check the scripts match the user's request (bounds, sims, paths, parameters, etc).
-4. If anything doesn't match, fix it using write_file. Common issues: wrong bounds, wrong sim count, missing paths.
-5. Present a concise summary of the scripts and what you fixed (if anything).
-6. Then wait for the user's feedback."""
+3. Load the guide for the generator being used (e.g., load_guide('aposmm')). If no specific generator is mentioned, load_guide('generators') for an overview.
+4. Check the scripts match the user's request and the guide's constraints. Fix anything that doesn't match using write_file.
+5. If an input file was provided, read it and check it has Jinja2 template markers matching the script's input_names. If not, use load_guide('input_templating') and create a properly templated copy in the working directory.
+6. Present a concise summary of the scripts and what you fixed (if anything).
+7. Ask the user if they want to run the scripts."""
 
 INTERACTIVE_REVIEW_GOAL = """I have existing scripts. The main script is '{run_script_name}'. Please review them and highlight the key configuration."""
 

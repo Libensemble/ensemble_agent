@@ -52,7 +52,7 @@ When using a SciPy method, must also supply `opt_return_codes` — e.g. [0] for 
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `max_active_runs` | int | Max concurrent local optimization runs |
+| `max_active_runs` | int | Max concurrent local optimization runs. Must not exceed nworkers. |
 | `dist_to_bound_multiple` | float (0,1] | Fraction of distance to boundary for initial step size |
 | `mu` | float | Min distance from boundary for starting points |
 | `nu` | float | Min distance from identified minima for starting points |
@@ -64,7 +64,7 @@ When using a SciPy method, must also supply `opt_return_codes` — e.g. [0] for 
 
 ## Worker Configuration
 
-APOSMM uses one persistent generator worker. With `nworkers = 4`, there are 3 simulation workers + 1 generator.
+With `gen_on_manager=True`, the persistent generator runs on the manager process and all `nworkers` are available for simulations.
 
 ## Local Optimizer Methods
 
@@ -109,6 +109,15 @@ APOSMM uses one persistent generator worker. With `nworkers = 4`, there are 3 si
 - **Gradient available**: `scipy_BFGS` or `LD_MMA`
 - **Least-squares (vector output)**: `pounders` (PETSc) or `dfols`
 - **Constrained**: `scipy_COBYLA` or `LN_COBYLA`
+
+## Interpreting Results
+
+After a run, report the number of minima found. In the results `.npy` file:
+- `local_min`: boolean field — rows where `local_min == True` are the identified local minima.
+- Count these to report how many minima APOSMM found.
+- Report the objective value (`f`) and location (`x`) of each minimum.
+
+Only consider rows where `sim_ended == True` (see results_metadata guide).
 
 ## Important
 
