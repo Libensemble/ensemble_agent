@@ -26,13 +26,13 @@ from . import tool_server
 
 _TESTS_DIR = str(Path(__file__).parent.parent / "tests")
 
-DEFAULT_PROMPT = f"""Create six_hump_camel APOSMM scripts:
+DEFAULT_PROMPT = f"""I want to optimize six_hump_camel APOSMM using an optimizer that is good for smooth functions.:
 - Executable: {_TESTS_DIR}/six_hump_camel/six_hump_camel.x
 - Input: {_TESTS_DIR}/six_hump_camel/input.txt
 - Template vars: X0, X1
-- 4 workers, 100 sims.
+- 4 workers, 100 initial sample and 400 sims.
 - The output file for each simulation is output.txt
-- The bounds should be -3,3 and -2,2 for X0 and X1 respectively"""
+- The bounds should be -2,2 and -1,1 for X0 and X1 respectively"""
 
 
 async def run_agent(config: AgentConfig):

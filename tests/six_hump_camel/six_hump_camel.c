@@ -11,8 +11,8 @@ int main(void)
     double x0, x1, f;
 
     FILE *fin = fopen("input.txt", "r");
-    fscanf(fin, "x0 = %lf", &x0);
-    fscanf(fin, "x1 = %lf", &x1);
+    fscanf(fin, " x0 = %lf", &x0);
+    fscanf(fin, " x1 = %lf", &x1);
     fclose(fin);
 
     // Six-hump camel function

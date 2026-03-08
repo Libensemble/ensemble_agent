@@ -87,6 +87,23 @@ With `gen_on_manager=True`, the persistent generator runs on the manager process
 | `LN_NELDERMEAD` | No | Classic simplex |
 | `LD_MMA` | Yes | Method of Moving Asymptotes |
 
+NLopt methods require convergence tolerances. If the user does not specify tolerances, use these defaults:
+
+```python
+"xtol_abs": 1e-6,
+"ftol_abs": 1e-6,
+```
+
+When using an NLopt method, always include `rk_const` scaled to the problem dimension:
+
+```python
+from math import gamma, pi, sqrt
+n = <number of dimensions>
+rk_const = 0.5 * ((gamma(1 + (n / 2)) * 5) ** (1 / n)) / sqrt(pi)
+```
+
+Use this formula directly in the generated script — do not precompute the value.
+
 ### PETSc/TAO (requires petsc4py package)
 
 | Method | Needs | Description |
@@ -118,17 +135,11 @@ Report the count, objective value, and location of each minimum.
 
 ## Tuning
 
-If APOSMM is not finding minima, try increasing `rk_const` to make it more aggressive
-about starting new local optimization runs in different regions. A recommended formula
-that scales with dimension:
+If APOSMM is not finding minima, try increasing the multiplier in `rk_const` (e.g., from 0.5 to a larger value) to make it more aggressive about starting new local optimization runs in different regions.
 
-```python
-from math import gamma, pi, sqrt
-rk_const = 0.5 * ((gamma(1 + (n / 2)) * 5) ** (1 / n)) / sqrt(pi)
-```
-
-where `n` is the problem dimension. Also consider increasing `dist_to_bound_multiple`
-(e.g., 0.5) for a larger initial step size.
+Use this formula directly in the generated script — do not precompute the value.
+Also consider increasing `dist_to_bound_multiple` (e.g., 0.5) for a larger initial
+step size.
 
 ## Important
 
