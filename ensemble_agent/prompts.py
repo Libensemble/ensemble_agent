@@ -46,6 +46,11 @@ GENERATOR_PROMPT_FRAGMENT = (
     "For modifications, use read_file + write_file instead."
 )
 
+EXAMPLES_PROMPT_FRAGMENT = (
+    "Use get_examples to see available test examples and their descriptions. "
+    "Then use get_example(test_name) to fetch the full source of a specific test for reference."
+)
+
 AUTONOMOUS_GOAL = """{initial_msg}
 
 After generating/loading scripts: review them. Load the guide for the generator being used, or load_guide('generators') for an overview. If an input file is referenced, read it and verify it has Jinja2 template markers matching the script's input_names — if not, create a templated copy. Then run the scripts, and if they fail fix the error and retry.
@@ -86,7 +91,7 @@ def _discover_guides():
 def build_system_prompt(has_generator):
     """Assemble the system prompt."""
     generator_rules = GENERATOR_RULES if has_generator else NO_GENERATOR_RULES
-    fragments = [GRAPHS_PROMPT_FRAGMENT, RESULTS_PROMPT_FRAGMENT]
+    fragments = [GRAPHS_PROMPT_FRAGMENT, RESULTS_PROMPT_FRAGMENT, EXAMPLES_PROMPT_FRAGMENT]
     if has_generator:
         fragments.append(GENERATOR_PROMPT_FRAGMENT)
     guides = _discover_guides()

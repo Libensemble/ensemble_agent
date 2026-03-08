@@ -5,6 +5,7 @@ import glob
 import os
 import subprocess
 import sys
+import urllib.request
 from pathlib import Path
 
 import numpy as np
@@ -243,6 +244,45 @@ def load_guide(topic: str) -> str:
     return doc_path.read_text()
 
 
+EXAMPLES_INDEX_URL = (
+    "https://raw.githubusercontent.com/Libensemble/libensemble"
+    "/main/docs/examples_index_libe.md"
+)
+
+
+def get_examples() -> str:
+    """Get the examples index listing available test examples and their descriptions."""
+    index_path = REFERENCE_DOCS_DIR / "examples_index_libe.md"
+    if index_path.exists():
+        return index_path.read_text()
+    # Try URL
+    try:
+        with urllib.request.urlopen(EXAMPLES_INDEX_URL) as resp:
+            content = resp.read().decode()
+        index_path.write_text(content)
+        return content
+    except Exception:
+        pass
+    # Generate fresh from test docstrings
+    from .create_examples_index import generate_index, write_markdown
+    entries = generate_index(first_paragraph_only=True)
+    write_markdown(entries, str(index_path))
+    return index_path.read_text()
+
+
+def get_example(test_name: str) -> str:
+    """Fetch the source code of a specific test example by name (e.g. 'test_persistent_aposmm_nlopt')."""
+    from .create_examples_index import GITHUB_RAW_URL
+    if not test_name.endswith(".py"):
+        test_name = test_name + ".py"
+    url = f"{GITHUB_RAW_URL}/{test_name}"
+    try:
+        with urllib.request.urlopen(url) as resp:
+            return resp.read().decode()
+    except Exception as e:
+        return f"ERROR: Could not fetch {test_name}: {e}"
+
+
 def run_python(code: str) -> str:
     """Execute a Python snippet and return its stdout. numpy is available as np. Runs in the working directory."""
     import io
@@ -258,7 +298,8 @@ def run_python(code: str) -> str:
 
 ALL_TOOLS = [
     read_file, write_file, list_files, run_script, generate_graphs,
-    install_package, check_results, browse_directory, load_guide, run_python,
+    install_package, check_results, browse_directory, load_guide,
+    get_examples, get_example, run_python,
 ]
 
 
