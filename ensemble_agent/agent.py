@@ -1,5 +1,6 @@
 """Agent orchestrator — builds the agent, runs autonomous or interactive mode."""
 
+import os
 import re
 import shutil
 import sys
@@ -73,8 +74,22 @@ async def run_agent(config: AgentConfig):
                 gen_tools = await load_mcp_tools(gen_session)
                 gen_tool = _wrap_generator_tool(gen_tools[0], archive)
                 tools.append(gen_tool)
-            except (FileNotFoundError, Exception) as e:
+            except FileNotFoundError as e:
                 print(f"Generator MCP not available: {e}")
+                print(
+                    "\nTo set up the generator MCP server:\n"
+                    "  git clone git@github.com:Libensemble/script-creator.git\n"
+                    "  cd script-creator && npm install\n"
+                    "  export GENERATOR_MCP_SERVER=/path/to/script-creator/mcp_server.mjs"
+                )
+                print("Continuing without script generator")
+                has_generator = False
+            except Exception as e:
+                err = str(e)
+                print(f"Generator MCP failed: {e}")
+                if "ERR_MODULE_NOT_FOUND" in err or "Cannot find package" in err:
+                    server_dir = Path(config.mcp_server or os.environ.get("GENERATOR_MCP_SERVER", "")).parent
+                    print(f"\nMissing Node.js dependencies. Run:\n  cd {server_dir} && npm install")
                 print("Continuing without script generator")
                 has_generator = False
 
