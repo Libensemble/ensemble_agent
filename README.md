@@ -51,6 +51,7 @@ export ANTHROPIC_API_KEY="sk-ant-your-key-here"
 Optionally, you can set the `LLM_MODEL` env variable to a model name.
 However, if using the Web UI, there is a drop down select of available models.
 
+See [Model comparison](#model-comparison) below for model performance analysis.
 
 <details>
 <summary>Using Argo gateway (optional)</summary>
@@ -140,6 +141,14 @@ python ensemble_agent.py --prompt "Create APOSMM scripts..."
 python ensemble_agent.py --debug
 ```
 
+A user run script can also be run directly using the agent, however as there
+is not yet an installable agent package it must be run from the base `ensemble_agent/`
+directory.
+
+```bash
+
+```
+
 Scripts are saved to `generated_scripts/` directory.
 
 Scripts will be ran, fixes attempted on failure, and reran.
@@ -170,3 +179,17 @@ python ensemble_agent.py -h
 | `LLM_MODEL` | Override default model |
 | `GENERATOR_MCP_SERVER` | Path to `mcp_server.mjs` |
 | `AGENT_DEBUG` | Enable debug logging |
+
+
+## Model comparison
+
+As of March 2026, the model used primarily in testing has been Claude Opus 4.6.
+Opus shows significantly better script fixing than Haiku, and slight benefits
+over Sonnet (both at 4.6).
+
+For example, the initial script generation from templates brings in a script
+using Scipy neldermead optimizer. Using the default prompt which requests an
+"optimizer that is good for smooth functions", Opus and Sonnet convert to using
+`nlopt` with "LN_BOBYQA", which is indicated in the reference docs. Haiku did
+not change the optimizer. Opus had minor configuration details over Sonnet and
+presented a more detailed analysis (e.g., table of minima found).

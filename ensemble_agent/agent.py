@@ -27,9 +27,9 @@ from . import tool_server
 
 _TESTS_DIR = str(Path(__file__).parent.parent / "tests")
 
-DEFAULT_PROMPT = f"""I want to optimize six_hump_camel APOSMM using an optimizer that is good for smooth functions.:
+DEFAULT_PROMPT = f"""I want to find the minima of the six_hump_camel function using an optimizer that is good for smooth functions.:
 - Executable: {_TESTS_DIR}/six_hump_camel/six_hump_camel.x
-- Input: {_TESTS_DIR}/six_hump_camel/input.txt
+- Example Input file: {_TESTS_DIR}/six_hump_camel/input.txt
 - Template vars: X0, X1
 - 4 workers, 100 initial sample and 400 sims.
 - The output file for each simulation is output.txt
