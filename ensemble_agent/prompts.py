@@ -47,8 +47,9 @@ GENERATOR_PROMPT_FRAGMENT = (
 )
 
 EXAMPLES_PROMPT_FRAGMENT = (
-    "Use get_examples to see available test examples and their descriptions. "
-    "Then use get_example(test_name) to fetch the full source of a specific test for reference."
+    "Use get_examples(collection) to see available source files and their descriptions. "
+    "Collections: 'tests' (regression tests), 'sim_funcs' (simulation functions). "
+    "Then use get_example(name, collection) to fetch the full source of a specific file for reference."
 )
 
 AUTONOMOUS_GOAL = """{initial_msg}

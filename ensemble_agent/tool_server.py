@@ -244,43 +244,63 @@ def load_guide(topic: str) -> str:
     return doc_path.read_text()
 
 
-EXAMPLES_INDEX_URL = (
+EXAMPLES_INDEX_URL_TEMPLATE = (
     "https://raw.githubusercontent.com/Libensemble/libensemble"
-    "/main/docs/examples_index_libe.md"
+    "/main/docs/{index_file}"
 )
 
 
-def get_examples() -> str:
-    """Get the examples index listing available test examples and their descriptions."""
-    index_path = REFERENCE_DOCS_DIR / "examples_index_libe.md"
+def get_examples(collection: str = "tests") -> str:
+    """Get the index of available source files and their descriptions for a collection.
+
+    Args:
+        collection: Which collection to index. Options: tests, sim_funcs.
+    """
+    from .create_examples_index import COLLECTIONS, generate_index, write_markdown
+    if collection not in COLLECTIONS:
+        return f"Unknown collection '{collection}'. Available: {list(COLLECTIONS.keys())}"
+    coll = COLLECTIONS[collection]
+    index_path = REFERENCE_DOCS_DIR / coll["index_file"]
     if index_path.exists():
         return index_path.read_text()
     # Try URL
     try:
-        with urllib.request.urlopen(EXAMPLES_INDEX_URL) as resp:
+        url = EXAMPLES_INDEX_URL_TEMPLATE.format(index_file=coll["index_file"])
+        with urllib.request.urlopen(url) as resp:
             content = resp.read().decode()
         index_path.write_text(content)
         return content
     except Exception:
         pass
-    # Generate fresh from test docstrings
-    from .create_examples_index import generate_index, write_markdown
-    entries = generate_index(first_paragraph_only=True)
-    write_markdown(entries, str(index_path))
+    # Generate fresh from docstrings
+    entries = generate_index(
+        github_path=coll["github_path"],
+        prefix=coll["prefix"],
+        first_paragraph_only=True,
+    )
+    write_markdown(entries, str(index_path), title=coll["title"], description=coll["description"])
     return index_path.read_text()
 
 
-def get_example(test_name: str) -> str:
-    """Fetch the source code of a specific test example by name (e.g. 'test_persistent_aposmm_nlopt')."""
-    from .create_examples_index import GITHUB_RAW_URL
-    if not test_name.endswith(".py"):
-        test_name = test_name + ".py"
-    url = f"{GITHUB_RAW_URL}/{test_name}"
+def get_example(name: str, collection: str = "tests") -> str:
+    """Fetch the full source code of a specific file by name (e.g. 'test_persistent_aposmm_nlopt').
+
+    Args:
+        name: The file name (with or without .py extension).
+        collection: Which collection to fetch from. Options: tests, sim_funcs.
+    """
+    from .create_examples_index import COLLECTIONS, _raw_url
+    if collection not in COLLECTIONS:
+        return f"Unknown collection '{collection}'. Available: {list(COLLECTIONS.keys())}"
+    coll = COLLECTIONS[collection]
+    if not name.endswith(".py"):
+        name = name + ".py"
+    url = f"{_raw_url(coll['github_path'])}/{name}"
     try:
         with urllib.request.urlopen(url) as resp:
             return resp.read().decode()
     except Exception as e:
-        return f"ERROR: Could not fetch {test_name}: {e}"
+        return f"ERROR: Could not fetch {name}: {e}"
 
 
 def run_python(code: str) -> str:
