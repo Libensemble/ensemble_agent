@@ -49,6 +49,7 @@ export ANTHROPIC_API_KEY="sk-ant-your-key-here"
 ```
 
 Optionally, you can set the `LLM_MODEL` env variable to a model name.
+However, if using the Web UI, there is a drop down select of available models.
 
 
 <details>
@@ -105,6 +106,8 @@ an MPI application is used to demonstrate running ensembles with a user applicat
 ## Usage
 
 The easiest way to try out is via the web UI interface in `web_ui/`.
+
+Note that the web UI will inherit any environment (e.g. conda) you are in.
 
 ```bash
 pip install fastapi uvicorn[standard] gradio websockets
