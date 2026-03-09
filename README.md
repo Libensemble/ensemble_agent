@@ -193,3 +193,5 @@ using Scipy neldermead optimizer. Using the default prompt which requests an
 `nlopt` with "LN_BOBYQA", which is indicated in the reference docs. Haiku did
 not change the optimizer. Opus had minor configuration details over Sonnet and
 presented a more detailed analysis (e.g., table of minima found).
+
+**Recommendation**: For Claude, use Sonnet or Opus (comparison with v4.6).
