@@ -106,7 +106,7 @@ cd ../../
 Note that six_hump_camel is used in many libEnsemble examples directly in Python, but
 an MPI application is used to demonstrate running ensembles with a user application.
 
-## Usage
+## Running Agent (Web UI)
 
 The easiest way to try out is via the web UI interface in `web_ui/`.
 
@@ -123,6 +123,8 @@ Click on the URL shown in the terminal to open the web interface.
 In the interface press the `Start Agent` button.
 
 See [web_ui/README.md](web_ui/README.md) for further details.
+
+## Running Agent (command line)
 
 To run scripts on command line, some examples...
 
@@ -148,7 +150,7 @@ is not yet an installable agent package it must be run from the base `ensemble_a
 directory.
 
 ```bash
-
+python -m ensemble_agent tests/scripts_with_errors/run_example.py
 ```
 
 Scripts are saved to `generated_scripts/` directory.
