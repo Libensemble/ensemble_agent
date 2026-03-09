@@ -99,6 +99,9 @@ gcc six_hump_camel.c -o six_hump_camel.x -l
 cd ../../
 ```
 
+Note that six_hump_camel is used in many libEnsemble examples directly in Python, but
+an MPI application is used to demonstrate running ensembles with a user application.
+
 ## Usage
 
 The easiest way to try out is via the web UI interface in `web_ui/`.
@@ -118,10 +121,10 @@ See [web_ui/README.md](web_ui/README.md) for further details.
 To run scripts on command line, some examples...
 
 ```bash
-# Fix existing scripts
+# Fix existing scripts (does not use six_hump_camel.x)
 python ensemble_agent.py --scripts tests/scripts_with_errors/
 
-# To run with script generation from the demo prompt (uses the six_hump_camel.x):
+# To run with script generation pre-filled prompt
 python ensemble_agent.py
 
 # Generate scripts interactively
