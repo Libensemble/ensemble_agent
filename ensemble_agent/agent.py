@@ -183,10 +183,18 @@ def _build_initial_message(config, archive):
         return user_prompt
 
     if config.interactive:
-        print("Describe the scripts you want to generate (or press Enter for default demo):", flush=True)
+        print("Describe the scripts you want to generate.", flush=True)
+        print("Type 'demo' to see the demo prompt, or press Enter to use it directly.", flush=True)
         if not sys.stdout.isatty():
             print(INPUT_MARKER, flush=True)
         user_input = input(">>> ").strip()
+        if user_input.lower() in ("demo", "see demo"):
+            print(f"\nDemo prompt:\n{DEFAULT_PROMPT}\n")
+            if not sys.stdout.isatty():
+                # Encode newlines so the prefill survives line-by-line reading
+                encoded = DEFAULT_PROMPT.replace("\n", "\\n")
+                print(f"{INPUT_MARKER} {encoded}", flush=True)
+            user_input = input(">>> ").strip()
         if user_input:
             return user_input
 

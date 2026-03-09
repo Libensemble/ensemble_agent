@@ -396,8 +396,11 @@ with gr.Blocks() as demo:
     def _input_disabled(placeholder="Agent is working..."):
         return gr.update(interactive=False, placeholder=placeholder), gr.update(interactive=False)
 
-    def _input_enabled(placeholder="Type your response..."):
-        return gr.update(interactive=True, placeholder=placeholder), gr.update(interactive=True)
+    def _input_enabled(placeholder="Type your response...", value=None):
+        input_update = gr.update(interactive=True, placeholder=placeholder)
+        if value is not None:
+            input_update["value"] = value
+        return input_update, gr.update(interactive=True)
 
     def start_run(agent_script, scripts_dir, history, agent_dir_val, scripts_dir_val,
                   model_label, model_map, mcp_tools):
@@ -468,9 +471,11 @@ with gr.Blocks() as demo:
                         # Check for input marker — stop streaming, let user respond
                         if INPUT_MARKER in text:
                             clean = text.replace(INPUT_MARKER, "").strip()
+                            prefill = None
                             if clean:
-                                history[-1]["content"] += clean + "\n"
-                            yield history, *_input_enabled()
+                                # Text after marker is prefill for input box
+                                prefill = clean.replace("\\n", "\n")
+                            yield history, *_input_enabled(value=prefill)
                             return
 
                         history[-1]["content"] += text + "\n"
