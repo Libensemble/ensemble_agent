@@ -11,8 +11,6 @@ from typing import Optional
 # Execution
 MAX_RUNS = 3
 SCRIPT_TIMEOUT = 300  # seconds
-MAX_AGENT_ITERATIONS = 15
-
 # Default models
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
 DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-20250514"
@@ -85,7 +83,6 @@ class AgentConfig:
 
     # Execution limits
     max_runs: int = MAX_RUNS
-    max_iterations: int = MAX_AGENT_ITERATIONS
     script_timeout: int = SCRIPT_TIMEOUT
 
     # Permissions
@@ -128,7 +125,6 @@ Examples:
     parser.add_argument("--generate-only", action="store_true", help="Only generate scripts, don't run")
     parser.add_argument("--show-prompts", action="store_true", help="Print prompts sent to AI")
     parser.add_argument("--debug", action="store_true", help="Dump full message log to debug_log.txt")
-    parser.add_argument("--max-iterations", type=int, default=MAX_AGENT_ITERATIONS, help="Max agent iterations")
     parser.add_argument("--allow-install", action="store_true", help="Allow agent to pip install packages in autonomous mode")
     args = parser.parse_args(argv)
 
@@ -142,7 +138,6 @@ Examples:
         mcp_tools=args.mcp_tools,
         show_prompts=args.show_prompts,
         debug=args.debug or bool(os.environ.get("AGENT_DEBUG")),
-        max_iterations=args.max_iterations,
     )
     if args.model:
         config.model = args.model
