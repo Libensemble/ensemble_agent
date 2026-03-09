@@ -53,6 +53,8 @@ However, if using the Web UI, there is a drop down select of available models.
 
 See [Model comparison](#model-comparison) below for model performance analysis.
 
+### Using other LLM services
+
 <details>
 <summary>Using Argo gateway (optional)</summary>
 
