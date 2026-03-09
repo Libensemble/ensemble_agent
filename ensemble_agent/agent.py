@@ -174,8 +174,11 @@ def _build_initial_message(config, archive):
         archive.start("copied_scripts")
         archive.archive_scripts()
 
-        run_scripts = list(archive.work_dir.glob("run_*.py"))
-        run_name = run_scripts[0].name if run_scripts else "run_libe.py"
+        if config.run_script:
+            run_name = config.run_script
+        else:
+            run_scripts = list(archive.work_dir.glob("run_*.py"))
+            run_name = run_scripts[0].name if run_scripts else "run_libe.py"
         return INTERACTIVE_REVIEW_GOAL.format(run_script_name=run_name)
 
     user_prompt = config.get_user_prompt()

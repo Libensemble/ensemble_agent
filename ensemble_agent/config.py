@@ -62,6 +62,7 @@ class AgentConfig:
 
     # Input
     scripts_dir: Optional[str] = None
+    run_script: Optional[str] = None
     prompt: Optional[str] = None
     prompt_file: Optional[str] = None
 
@@ -115,6 +116,7 @@ Examples:
   python ensemble_agent.py --prompt "Create APOSMM scripts..."
         """,
     )
+    parser.add_argument("script", nargs="?", default=None, help="Path to a script file to run/fix")
     parser.add_argument("--interactive", action="store_true", help="Enable interactive chat mode")
     parser.add_argument("--scripts", dest="scripts_dir", help="Use existing scripts from directory")
     parser.add_argument("--prompt", help="Prompt for script generation")
@@ -128,10 +130,21 @@ Examples:
     parser.add_argument("--allow-install", action="store_true", help="Allow agent to pip install packages in autonomous mode")
     args = parser.parse_args(argv)
 
+    # Positional script arg: treat its directory as scripts_dir
+    scripts_dir = args.scripts_dir
+    run_script = None
+    if args.script:
+        script_path = Path(args.script)
+        if not script_path.exists():
+            parser.error(f"Script not found: {args.script}")
+        scripts_dir = str(script_path.parent)
+        run_script = script_path.name
+
     config = AgentConfig(
         interactive=args.interactive,
         generate_only=args.generate_only,
-        scripts_dir=args.scripts_dir,
+        scripts_dir=scripts_dir,
+        run_script=run_script,
         prompt=args.prompt,
         prompt_file=args.prompt_file,
         mcp_server=args.mcp_server,
