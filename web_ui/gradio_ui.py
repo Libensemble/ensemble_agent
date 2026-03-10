@@ -74,9 +74,9 @@ def _fetch_models():
                 client = OpenAI(api_key=api_key, base_url=base_url or None)
                 models = client.models.list()
                 source = "OpenAI" if not base_url else base_url.split("//")[-1].split("/")[0]
-                skip = {"embed", "tts", "whisper", "dall-e", "davinci", "babbage", "moderation"}
+                chat_prefixes = ("gpt-",)
                 for m in sorted(models.data, key=lambda x: x.id):
-                    if any(s in m.id.lower() for s in skip):
+                    if not m.id.lower().startswith(chat_prefixes):
                         continue
                     label = f"{m.id} ({source})"
                     choices.append(label)
@@ -88,7 +88,7 @@ def _fetch_models():
                 else:
                     errors.append(f"OpenAI: cannot fetch models ({type(e).__name__})")
 
-    # --- Anthropic (or Argo when ANTHROPIC_BASE_URL set) ---
+    # --- Anthropic / Argo non-OpenAI models ---
     if anthropic_key:
         try:
             url = f"{anthropic_base.rstrip('/')}/v1/models?limit=100"
@@ -109,6 +109,10 @@ def _fetch_models():
                 service_name = "Argo" if is_argo else "Anthropic"
                 for m in sorted(data.get("data", []), key=lambda x: x.get("id", "")):
                     mid = m.get("id", "")
+                    if "embed" in mid.lower():
+                        continue
+                    if is_argo and m.get("owned_by", "") != "anthropic":
+                        continue
                     label = f"{mid} ({service_name})"
                     choices.append(label)
                     model_map[label] = (mid, "")
@@ -172,9 +176,14 @@ def _check_api(model=None, base_url=None):
     from openai import OpenAI
     try:
         client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"), base_url=base_url)
-        client.chat.completions.create(
-            model=model, messages=[{"role": "user", "content": "hi"}], max_tokens=10
-        )
+        kwargs = {"model": model, "messages": [{"role": "user", "content": "hi"}]}
+        try:
+            client.chat.completions.create(**kwargs, max_tokens=10)
+        except Exception as e1:
+            if "max_tokens" in str(e1).lower():
+                client.chat.completions.create(**kwargs, max_completion_tokens=10)
+            else:
+                raise
         return None
     except Exception as e:
         msg = str(e)
@@ -183,8 +192,6 @@ def _check_api(model=None, base_url=None):
                     "```\npython3 inference_auth_token.py authenticate --force\n"
                     "export OPENAI_API_KEY=$(python inference_auth_token.py get_access_token)\n```\n\n"
                     "Then restart the UI.")
-        elif "401" in msg or "invalid" in msg.lower():
-            return f"⚠️ Invalid API key for {model}. Check OPENAI_API_KEY."
         else:
             return f"⚠️ API check failed ({model}): {e}"
 
