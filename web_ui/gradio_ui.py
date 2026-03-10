@@ -285,17 +285,26 @@ _init_versions = scan_versions(str(DEFAULT_AGENT_DIR))
 _cur_base = os.environ.get("OPENAI_BASE_URL", "")
 _has_openai = bool(os.environ.get("OPENAI_API_KEY"))
 _has_anthropic = bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
-if "alcf" in _cur_base.lower():
+_is_argo_openai = "argo" in _cur_base.lower()
+_is_argo_anthropic = "argo" in os.environ.get("ANTHROPIC_BASE_URL", "").lower()
+if _is_argo_openai or _is_argo_anthropic:
+    providers = []
+    if _is_argo_openai:
+        providers.append("OpenAI")
+    if _is_argo_anthropic:
+        providers.append("Anthropic")
+    _service_label = f"Argo ({' + '.join(providers)})"
+elif "alcf" in _cur_base.lower():
     _service_label = "ALCF"
 elif _cur_base:
     _service_label = _cur_base.split("//")[-1].split("/")[0]
-elif _has_openai:
-    _service_label = "OpenAI"
 else:
-    _service_label = ""
-if _has_anthropic:
-    _argo = "Argo" if os.environ.get("ANTHROPIC_BASE_URL") else "Anthropic"
-    _service_label = f"{_service_label} + {_argo}" if _service_label else _argo
+    providers = []
+    if _has_openai:
+        providers.append("OpenAI")
+    if _has_anthropic:
+        providers.append("Anthropic")
+    _service_label = " + ".join(providers)
 
 # Fetch available models (one quick call at startup)
 _init_model_label = _current_model_label()
