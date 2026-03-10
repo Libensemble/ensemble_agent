@@ -212,6 +212,10 @@ def check_results() -> str:
         col = H[name]
         if col.dtype.kind in ('f', 'i'):
             summary += f"\n{name}: min={np.min(col):.6g}, max={np.max(col):.6g}, mean={np.mean(col):.6g}, unique={len(np.unique(col))}"
+        elif col.dtype.kind == 'b':
+            true_count = int(np.sum(col))
+            if 0 < true_count < len(col):
+                summary += f"\n{name}: {true_count}/{len(col)} True"
     return summary
 
 
@@ -308,11 +312,15 @@ def run_python(code: str) -> str:
     import io
     import contextlib
     buf = io.StringIO()
+    prev_dir = os.getcwd()
     try:
+        os.chdir(WORK_DIR)
         with contextlib.redirect_stdout(buf):
-            exec(code, {"np": np, "__builtins__": __builtins__}, {"WORK_DIR": WORK_DIR})
+            exec(code, {"np": np, "__builtins__": __builtins__}, {})
     except Exception as e:
         return f"ERROR: {e}"
+    finally:
+        os.chdir(prev_dir)
     return buf.getvalue()
 
 
