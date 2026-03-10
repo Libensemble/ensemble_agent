@@ -12,8 +12,8 @@ from typing import Optional
 MAX_RUNS = 3
 SCRIPT_TIMEOUT = 300  # seconds
 # Default models
-DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
-DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-20250514"
+DEFAULT_OPENAI_MODEL = "gpt-5.4"
+DEFAULT_ANTHROPIC_MODEL = "claude-opus-4-6"
 DEFAULT_ARGO_MODEL = "claude-opus-4-6"
 
 # Storage
