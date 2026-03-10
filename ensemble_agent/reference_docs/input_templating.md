@@ -47,15 +47,21 @@ Always verify that template markers in the input file match `input_names` exactl
 
 Original `input.txt`:
 ```
-0.5
-1.2
+param_a = 3.14
+param_b = -0.7
+param_c = 2.0
+mode = fast
 ```
 
-Templated version (if `input_names` is `["X0", "X1"]`):
+Templated version (if `input_names` is `["A", "B", "C"]`):
 ```
-{{ X0 }}
-{{ X1 }}
+param_a = {{ A }}
+param_b = {{ B }}
+param_c = {{ C }}
+mode = fast
 ```
+
+Only the numeric values for the named variables are replaced. Everything else — key names, formatting, other lines — stays exactly as-is.
 
 ## Notes
 
