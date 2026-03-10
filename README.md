@@ -58,12 +58,23 @@ See [Model comparison](#model-comparison) below for model performance analysis.
 <details>
 <summary>Using Argo gateway (optional)</summary>
 
-If you have access to Argo, you can use it as an Anthropic gateway:
+If you have access to Argo at Argonne, you can use it to access Claude and/or OpenAI models.
+
+For Claude models:
 
 ```bash
 export ANTHROPIC_BASE_URL="https://apps-dev.inside.anl.gov/argoapi"
-export ANTHROPIC_AUTH_TOKEN="your-argo-auth-id-here"
+export ANTHROPIC_AUTH_TOKEN="your-anl-username"
 ```
+
+For OpenAI models:
+
+```bash
+export OPENAI_BASE_URL="https://apps-dev.inside.anl.gov/argoapi/v1"
+export OPENAI_API_KEY="your-anl-username"
+```
+
+Set both if you want access to both model families.
 
 </details>
 
@@ -187,7 +198,7 @@ python ensemble_agent.py -h
 
 ## Model comparison
 
-As of March 2026, the model used primarily in testing has been Claude Opus 4.6.
+As of March 9 2026, the model used primarily in testing has been Claude Opus 4.6.
 Opus shows significantly better script fixing than Haiku, and slight benefits
 over Sonnet (both at 4.6).
 
@@ -198,4 +209,20 @@ using Scipy neldermead optimizer. Using the default prompt which requests an
 not change the optimizer. Opus had minor configuration details over Sonnet and
 presented a more detailed analysis (e.g., table of minima found).
 
+The Opus and Sonnet scripts both ran first time and produced good output.
+
 **Recommendation**: For Claude, use Sonnet or Opus (comparison with v4.6).
+
+OpenAI models:
+
+GPT-5.4 produced correct scripts with  and ran first time. It used `nlopt`
+with "LN_BOBYQA".
+
+GPT-5.2 change the optimzier and script ran first time, but did not add
+rk_const, and found minima slower.
+
+GPT-5.1 did not change the optimizer.
+
+**Recommendation**: For OpenAI, use GPT-5.4+ (GPT-5.2 is usable).
+
+

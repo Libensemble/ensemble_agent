@@ -105,7 +105,8 @@ def _fetch_models():
             else:
                 resp.raise_for_status()
                 data = resp.json()
-                service_name = "Argo" if os.environ.get("ANTHROPIC_BASE_URL") else "Anthropic"
+                is_argo = bool(os.environ.get("ANTHROPIC_BASE_URL"))
+                service_name = "Argo" if is_argo else "Anthropic"
                 for m in sorted(data.get("data", []), key=lambda x: x.get("id", "")):
                     mid = m.get("id", "")
                     label = f"{mid} ({service_name})"
@@ -172,7 +173,7 @@ def _check_api(model=None, base_url=None):
     try:
         client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"), base_url=base_url)
         client.chat.completions.create(
-            model=model, messages=[{"role": "user", "content": "hi"}], max_tokens=1
+            model=model, messages=[{"role": "user", "content": "hi"}], max_tokens=10
         )
         return None
     except Exception as e:
