@@ -127,7 +127,10 @@ def generate_graphs() -> str:
     Produces objective progress plot and, if APOSMM was used,
     optimization runs plot. Call after a successful run.
     """
-    from ensemble_agent.plotting import plot_objective, plot_local_runs
+    try:
+        from ensemble_agent.plotting import plot_objective, plot_local_runs
+    except ImportError:
+        return "Graphs skipped: matplotlib is not installed (pip install matplotlib)."
 
     graphs_dir = WORK_DIR / "graphs"
     graphs_dir.mkdir(parents=True, exist_ok=True)

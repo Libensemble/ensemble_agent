@@ -8,7 +8,7 @@ Uses LangChain ReAct agents with tools exposed via MCP and local Python function
 
 Dependencies (no package installer yet):
 
-    pip install langchain langchain-openai langchain-anthropic mcp
+    pip install langchain langchain-openai langchain-anthropic langchain-mcp-adapters mcp matplotlib
 
 For the web UI:
 
@@ -23,9 +23,8 @@ It is **not** requied when user scripts are specified via `--scripts` option.
 sudo apt install nodejs
 git clone https://github.com/Libensemble/script-creator.git
 cd script-creator
-npm install
-
 export GENERATOR_MCP_SERVER="$(pwd)/mcp_server.mjs"
+npm install
 ```
 
 ## Options for LLM model keys
@@ -34,7 +33,7 @@ For all workflows, you will need a key to access an LLM.
 
 For example, you can set an OpenAPI key.
 Requires an [OpenAI account](https://platform.openai.com).
-Make sure to check MODEL at top of agentic script and usage rates.
+Make sure to check the MODEL and usage rates.
 
 Set user OpenAI API Key:
 
@@ -121,10 +120,9 @@ an MPI application is used to demonstrate running ensembles with a user applicat
 
 The easiest way to try out is via the web UI interface in `web_ui/`.
 
-Note that the web UI will inherit any environment (e.g. conda) you are in.
+*Note that the web UI will inherit any environment (e.g. conda) you are in.*
 
 ```bash
-pip install fastapi uvicorn[standard] gradio websockets
 cd web_ui
 python gradio_ui.py
 ```
