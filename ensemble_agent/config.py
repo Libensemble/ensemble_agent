@@ -14,7 +14,6 @@ SCRIPT_TIMEOUT = 300  # seconds
 # Default models
 DEFAULT_OPENAI_MODEL = "gpt-5.4"
 DEFAULT_ANTHROPIC_MODEL = "claude-opus-4-6"
-DEFAULT_ARGO_MODEL = "claude-opus-4-6"
 
 # Storage
 ARCHIVE_RUNS_DIR = "archive_runs"
@@ -45,9 +44,9 @@ def _default_model() -> str:
     """Pick default model based on available API keys."""
     if os.environ.get("LLM_MODEL"):
         return os.environ["LLM_MODEL"]
-    if _is_argo():
-        return DEFAULT_ARGO_MODEL
-    if os.environ.get("OPENAI_API_KEY") or not _has_anthropic_key():
+    if _has_anthropic_key():
+        return DEFAULT_ANTHROPIC_MODEL
+    if os.environ.get("OPENAI_API_KEY"):
         return DEFAULT_OPENAI_MODEL
     return DEFAULT_ANTHROPIC_MODEL
 
