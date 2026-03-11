@@ -100,7 +100,7 @@ export OPENAI_API_KEY=$(python inference_auth_token.py get_access_token)
 
 </details>
 
-Please report (e.g., via Issues or [support options](https://libensemble.readthedocs.io/en/main/introduction.html#resources)) if you have a KEY setup that does not work with the agent.
+Please [report](#support) if you have a KEY setup that does not work with the agent.
 
 
 ## Setup
@@ -212,14 +212,16 @@ The Opus and Sonnet scripts both ran first time and produced good output.
 
 OpenAI models:
 
-GPT-5.4 produced correct scripts with  and ran first time. It used `nlopt`
+GPT-5.4 produced correct scripts with and ran first time. It used `nlopt`
 with "LN_BOBYQA".
 
-GPT-5.2 change the optimzier and script ran first time, but did not add
-rk_const, and found minima slower.
+GPT-5.2 used `nlopt` and the script ran first time, but did not add
+`rk_const`, and found minima slower.
 
-GPT-5.1 did not change the optimizer.
+GPT-5.1 did not change the optimizer from the template default.
 
 **Recommendation**: For OpenAI, use GPT-5.4+ (GPT-5.2 is usable).
 
+## Support
 
+Please report issues or suggestions via Issues or [support options](https://libensemble.readthedocs.io/en/main/introduction.html#resources)
