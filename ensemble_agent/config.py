@@ -33,7 +33,7 @@ INPUT_MARKER = "[INPUT_REQUESTED]"
 
 
 def _has_anthropic_key() -> bool:
-    return bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
+    return bool(os.environ.get("ANTHROPIC_API_KEY"))
 
 
 def _is_argo() -> bool:
@@ -101,10 +101,6 @@ class AgentConfig:
 
 def parse_args(argv=None) -> AgentConfig:
     """Parse CLI arguments into AgentConfig."""
-    # Argo: use ANTHROPIC_AUTH_TOKEN as API key
-    if os.environ.get("ANTHROPIC_AUTH_TOKEN") and not os.environ.get("ANTHROPIC_API_KEY"):
-        os.environ["ANTHROPIC_API_KEY"] = os.environ["ANTHROPIC_AUTH_TOKEN"]
-
     parser = argparse.ArgumentParser(
         description="Ensemble agent for generating, running, and fixing simulation scripts",
         formatter_class=argparse.RawDescriptionHelpFormatter,

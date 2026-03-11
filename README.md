@@ -63,7 +63,7 @@ For Claude models:
 
 ```bash
 export ANTHROPIC_BASE_URL="https://apps-dev.inside.anl.gov/argoapi"
-export ANTHROPIC_AUTH_TOKEN="your-anl-username"
+export ANTHROPIC_API_KEY="your-anl-username"
 ```
 
 For OpenAI models:
@@ -186,7 +186,6 @@ python ensemble_agent.py -h
 |----------|-------------|
 | `OPENAI_API_KEY` | OpenAI API key |
 | `ANTHROPIC_API_KEY` | Anthropic API key |
-| `ANTHROPIC_AUTH_TOKEN` | Argo gateway token (auto-mapped to `ANTHROPIC_API_KEY`) |
 | `OPENAI_BASE_URL` | Custom OpenAI-compatible endpoint |
 | `ANTHROPIC_BASE_URL` | Custom Anthropic endpoint |
 | `LLM_MODEL` | Override default model |

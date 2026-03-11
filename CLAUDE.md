@@ -58,7 +58,6 @@ The MCP server requires Node.js (`node` on PATH) since it is a `.mjs` file.
 
 ```
 OPENAI_API_KEY / ANTHROPIC_API_KEY    # LLM auth
-ANTHROPIC_AUTH_TOKEN                  # Argo gateway (auto-mapped to ANTHROPIC_API_KEY)
 ANTHROPIC_BASE_URL / OPENAI_BASE_URL  # Custom endpoints
 LLM_MODEL                            # Override default model
 GENERATOR_MCP_SERVER                  # Path to mcp_server.mjs (see above)

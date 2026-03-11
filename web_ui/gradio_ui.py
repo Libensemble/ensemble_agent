@@ -29,7 +29,7 @@ def _fetch_models():
     model_map: label -> (model_name, base_url)
     """
     api_key = os.environ.get("OPENAI_API_KEY", "")
-    anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "") or os.environ.get("ANTHROPIC_AUTH_TOKEN", "")
+    anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "")
     anthropic_base = os.environ.get("ANTHROPIC_BASE_URL") or "https://api.anthropic.com"
     base_url = os.environ.get("OPENAI_BASE_URL", "")
 
@@ -150,9 +150,9 @@ def _check_api(model=None, base_url=None):
     base_url = base_url or os.environ.get("OPENAI_BASE_URL")
 
     if "claude" in model.lower():
-        api_key = os.environ.get("ANTHROPIC_AUTH_TOKEN") or os.environ.get("ANTHROPIC_API_KEY")
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:
-            return "⚠️ ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN required for Claude."
+            return "⚠️ ANTHROPIC_API_KEY required for Claude."
         base = os.environ.get("ANTHROPIC_BASE_URL") or "https://api.anthropic.com"
         try:
             resp = requests.post(
@@ -291,7 +291,7 @@ _init_versions = scan_versions(str(DEFAULT_AGENT_DIR))
 # Determine service label for title
 _cur_base = os.environ.get("OPENAI_BASE_URL", "")
 _has_openai = bool(os.environ.get("OPENAI_API_KEY"))
-_has_anthropic = bool(os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"))
+_has_anthropic = bool(os.environ.get("ANTHROPIC_API_KEY"))
 _is_argo_openai = "argo" in _cur_base.lower()
 _is_argo_anthropic = "argo" in os.environ.get("ANTHROPIC_BASE_URL", "").lower()
 if _is_argo_openai or _is_argo_anthropic:
