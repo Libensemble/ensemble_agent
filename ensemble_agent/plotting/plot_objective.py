@@ -53,12 +53,11 @@ def plot(npy_file=None, run_name=None, output_dir=None):
     # Add some statistics
     summary = f"{run_name} summary:\n  Number of simulations: {len(H_filtered)}"
     if len(H_filtered) > 0:
-        best_f = np.min(H_filtered['f'])
-        best_sim = H_filtered['sim_id'][np.argmin(H_filtered['f'])]
-        plt.axhline(y=best_f, color='r', linestyle='--', alpha=0.7,
-                    label=f'Best f = {best_f:.6f} (sim {best_sim})')
+        cum_min = np.minimum.accumulate(H_filtered['f'])
+        plt.plot(H_filtered['sim_id'], cum_min, 'r-', linewidth=2, alpha=0.8,
+                 label=f'Cumulative min (best: {cum_min[-1]:.6f})')
         plt.legend()
-        summary += f"\n  Best f value: {best_f:.6f}"
+        summary += f"\n  Best f value: {cum_min[-1]:.6f}"
     else:
         summary += "\n  No completed simulations found."
 
