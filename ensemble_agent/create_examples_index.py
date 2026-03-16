@@ -43,6 +43,13 @@ COLLECTIONS = {
         "title": "libEnsemble Sim Functions Index",
         "description": "Reference index of libEnsemble simulation functions.",
     },
+    "vocs": {
+        "local_path": os.path.join(REFERENCE_DOCS_DIR, "vocs_example"),
+        "prefix": "",
+        "index_file": "vocs_example_index.md",
+        "title": "VOCS Generator Examples",
+        "description": "Reference examples for VOCS/gest-api generator scripts with executor-based sim functions.",
+    },
 }
 
 

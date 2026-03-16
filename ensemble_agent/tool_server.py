@@ -261,7 +261,7 @@ def get_examples(collection: str = "tests") -> str:
     """Get the index of available source files and their descriptions for a collection.
 
     Args:
-        collection: Which collection to index. Options: tests, sim_funcs.
+        collection: Which collection to index. Options: tests, sim_funcs, vocs.
     """
     from .create_examples_index import COLLECTIONS, generate_index, write_markdown
     if collection not in COLLECTIONS:
@@ -269,6 +269,15 @@ def get_examples(collection: str = "tests") -> str:
     coll = COLLECTIONS[collection]
     index_path = REFERENCE_DOCS_DIR / coll["index_file"]
     if index_path.exists():
+        return index_path.read_text()
+    # Local collections generate from local directory
+    if "local_path" in coll:
+        entries = generate_index(
+            directory=coll["local_path"],
+            prefix=coll["prefix"],
+            first_paragraph_only=True,
+        )
+        write_markdown(entries, str(index_path), title=coll["title"], description=coll["description"])
         return index_path.read_text()
     # Try URL
     try:
@@ -294,7 +303,7 @@ def get_example(name: str, collection: str = "tests") -> str:
 
     Args:
         name: The file name (with or without .py extension).
-        collection: Which collection to fetch from. Options: tests, sim_funcs.
+        collection: Which collection to fetch from. Options: tests, sim_funcs, vocs.
     """
     from .create_examples_index import COLLECTIONS, _raw_url
     if collection not in COLLECTIONS:
@@ -302,6 +311,12 @@ def get_example(name: str, collection: str = "tests") -> str:
     coll = COLLECTIONS[collection]
     if not name.endswith(".py"):
         name = name + ".py"
+    # Local collections read from disk
+    if "local_path" in coll:
+        filepath = Path(coll["local_path"]) / name
+        if filepath.exists():
+            return filepath.read_text()
+        return f"ERROR: File '{name}' not found in {coll['local_path']}"
     url = f"{_raw_url(coll['github_path'])}/{name}"
     try:
         with urllib.request.urlopen(url) as resp:
