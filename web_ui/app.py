@@ -86,7 +86,7 @@ class Session:
             self.process = None
 
     async def run_agent(self, agent_script, scripts_dir, ws, agent_dir=None,
-                        llm_model=None, openai_base_url=None, mcp_tools=False):
+                        llm_model=None, openai_base_url=None, mcp_tools=False, pre_chat=""):
         run_dir = Path(agent_dir) if agent_dir else AGENT_DIR
         cmd = [sys.executable, agent_script]
 
@@ -110,6 +110,8 @@ class Session:
             env_overrides["LLM_MODEL"] = llm_model
         if openai_base_url:
             env_overrides["OPENAI_BASE_URL"] = openai_base_url
+        if pre_chat:
+            env_overrides["AGENT_PRE_CHAT"] = pre_chat
 
         thread = threading.Thread(
             target=self._subprocess_thread,
@@ -204,6 +206,7 @@ async def ws_endpoint(ws: WebSocket, session_id: str):
                         llm_model=msg.get("llm_model"),
                         openai_base_url=msg.get("openai_base_url"),
                         mcp_tools=msg.get("mcp_tools", False),
+                        pre_chat=msg.get("pre_chat", ""),
                     )
                 )
     except WebSocketDisconnect:

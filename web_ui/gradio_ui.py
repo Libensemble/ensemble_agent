@@ -459,6 +459,19 @@ with gr.Blocks() as demo:
             history = history + [{"role": "assistant", "content": "⚠️ Websocket not connected. Try refreshing."}]
             return history, *_input_enabled("Type prompt or response here..."), False
 
+        # Collect pre-agent chat history for context
+        pre_chat = []
+        for msg in history:
+            role = msg.get("role", "")
+            content = msg.get("content", "")
+            if isinstance(content, list):
+                content = "".join(
+                    block.get("text", "") if isinstance(block, dict) else str(block)
+                    for block in content
+                )
+            if role in ("user", "assistant") and content and not content.startswith("▶"):
+                pre_chat.append(f"{role}: {content}")
+
         message_queue.put(json.dumps({
             "type": "run",
             "agent_script": agent_script,
@@ -467,6 +480,7 @@ with gr.Blocks() as demo:
             "llm_model": sel_model,
             "openai_base_url": sel_base_url,
             "mcp_tools": bool(mcp_tools),
+            "pre_chat": "\n".join(pre_chat) if pre_chat else "",
         }))
         return history, *_input_disabled(), True
 

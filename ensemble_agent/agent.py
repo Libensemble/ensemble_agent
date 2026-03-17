@@ -183,7 +183,7 @@ def _build_initial_message(config, archive):
 
     user_prompt = config.get_user_prompt()
     if user_prompt:
-        return user_prompt
+        return _with_pre_chat(user_prompt)
 
     if config.interactive:
         print("Describe the scripts you want to generate.", flush=True)
@@ -199,10 +199,25 @@ def _build_initial_message(config, archive):
                 print(f"{INPUT_MARKER} {encoded}", flush=True)
             user_input = input(">>> ").strip()
         if user_input:
-            return user_input
+            return _with_pre_chat(user_input)
 
     print(f"Using demo prompt:\n{DEFAULT_PROMPT}\n")
-    return DEFAULT_PROMPT
+    return _with_pre_chat(DEFAULT_PROMPT)
+
+
+def _with_pre_chat(prompt):
+    """Prepend pre-agent chat context from environment if available."""
+    pre_chat = os.environ.get("AGENT_PRE_CHAT", "")
+    if not pre_chat:
+        return prompt
+    return (
+        "The user had the following discussion before starting the agent:\n"
+        "---\n"
+        f"{pre_chat}\n"
+        "---\n"
+        "This is background context only. Follow the user's actual prompt below.\n\n"
+        f"{prompt}"
+    )
 
 
 async def _run_autonomous(agent, messages, initial_msg, config, debug):
