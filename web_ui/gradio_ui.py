@@ -338,6 +338,7 @@ with gr.Blocks() as demo:
     agent_pattern_state = gr.State(value=DEFAULT_AGENT_PATTERN)
     model_map_state = gr.State(value=_init_model_map)
     settings_visible = gr.State(value=False)
+    agent_running = gr.State(value=False)
 
     with gr.Column(visible=False) as settings_modal:
         with gr.Column(elem_classes="modal-content"):
@@ -424,7 +425,7 @@ with gr.Blocks() as demo:
         """Send run command and add user message to chat"""
         if not agent_script:
             history = history + [{"role": "assistant", "content": "⚠️ No agent script selected"}]
-            return history, *_input_enabled("Type prompt or response here...")
+            return history, *_input_enabled("Type prompt or response here..."), False
 
         # Resolve model from dropdown selection
         if model_label and model_label in model_map:
@@ -437,7 +438,7 @@ with gr.Blocks() as demo:
         api_err = _check_api(model=sel_model, base_url=sel_base_url or None)
         if api_err:
             history = history + [{"role": "assistant", "content": api_err}]
-            return history, *_input_enabled("Type prompt or response here...")
+            return history, *_input_enabled("Type prompt or response here..."), False
 
         agent_dir = Path(agent_dir_val) if agent_dir_val else DEFAULT_AGENT_DIR
         scripts_base = Path(scripts_dir_val) if scripts_dir_val else DEFAULT_TESTS_DIR
@@ -456,7 +457,7 @@ with gr.Blocks() as demo:
 
         if not ws_thread or not ws_thread.is_alive():
             history = history + [{"role": "assistant", "content": "⚠️ Websocket not connected. Try refreshing."}]
-            return history, *_input_enabled("Type prompt or response here...")
+            return history, *_input_enabled("Type prompt or response here..."), False
 
         message_queue.put(json.dumps({
             "type": "run",
@@ -467,10 +468,16 @@ with gr.Blocks() as demo:
             "openai_base_url": sel_base_url,
             "mcp_tools": bool(mcp_tools),
         }))
-        return history, *_input_disabled()
+        return history, *_input_disabled(), True
 
-    def stream_output(history):
+    def stream_output(history, is_agent_running):
         """Stream script output as assistant messages. Stops when input is requested or script finishes."""
+        if not is_agent_running:
+            # Pre-agent chat mode — response already in history, nothing to stream
+            _drain_queue(output_queue)
+            yield history, *_input_enabled("Type prompt or response here...")
+            return
+
         history = history + [{"role": "assistant", "content": ""}]
         start = time.time()
         timeout = 300
@@ -514,15 +521,78 @@ with gr.Blocks() as demo:
             except Empty:
                 yield history, *disabled
 
-    def send_user_input(text, history):
-        """Send user response to the running script's stdin"""
-        user_text = text.strip() if text else ""
-        message_queue.put(json.dumps({"type": "input", "text": user_text}))
-        if user_text:
-            history = history + [{"role": "user", "content": user_text}]
+    PRE_AGENT_SYSTEM = (
+        "You are the libEnsemble Agent assistant. You help users create, run, and fix "
+        "simulation scripts for libEnsemble — an ensemble framework for running simulations "
+        "with optimization and sampling generators.\n\n"
+        "Right now you're in chat mode. You can discuss the user's problem, explain what "
+        "the agent can do, and help them plan their approach. To actually generate or fix "
+        "scripts, the user should press 'Start Agent'.\n\n"
+        "Keep responses concise."
+    )
+
+    def _chat_with_llm(history, model_label, model_map):
+        """Direct LLM call for pre-agent chat mode."""
+        if model_label and model_label in model_map:
+            sel_model, sel_base_url = model_map[model_label]
         else:
-            history = history + [{"role": "user", "content": "↵"}]
-        return gr.update(value="", interactive=False, placeholder="Agent is working..."), history, gr.update(interactive=False)
+            sel_model = _default_model()
+            sel_base_url = os.environ.get("OPENAI_BASE_URL", "")
+
+        messages = [{"role": "system", "content": PRE_AGENT_SYSTEM}]
+        for msg in history:
+            role = msg.get("role", "user")
+            if role in ("user", "assistant"):
+                messages.append({"role": role, "content": msg.get("content", "")})
+
+        try:
+            if "claude" in sel_model.lower():
+                api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+                base = os.environ.get("ANTHROPIC_BASE_URL") or "https://api.anthropic.com"
+                resp = requests.post(
+                    f"{base.rstrip('/')}/v1/messages",
+                    headers={
+                        "x-api-key": api_key,
+                        "anthropic-version": "2023-06-01",
+                        "content-type": "application/json",
+                    },
+                    json={
+                        "model": sel_model,
+                        "system": PRE_AGENT_SYSTEM,
+                        "messages": messages[1:],
+                        "max_tokens": 1024,
+                    },
+                    timeout=30,
+                )
+                if resp.ok:
+                    data = resp.json()
+                    content = data.get("content", [{}])
+                    return content[0].get("text", "") if content else ""
+                return f"LLM error: {resp.status_code}"
+            else:
+                from openai import OpenAI
+                client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"), base_url=sel_base_url or None)
+                resp = client.chat.completions.create(model=sel_model, messages=messages, max_tokens=1024)
+                return resp.choices[0].message.content or ""
+        except Exception as e:
+            return f"LLM error: {e}"
+
+    def send_user_input(text, history, is_agent_running, model_label, model_map):
+        """Send user input to the agent (if running) or chat directly with the LLM."""
+        user_text = text.strip() if text else ""
+        if not user_text:
+            return gr.update(value=""), history, gr.update()
+
+        history = history + [{"role": "user", "content": user_text}]
+
+        if is_agent_running:
+            message_queue.put(json.dumps({"type": "input", "text": user_text}))
+            return gr.update(value="", interactive=False, placeholder="Agent is working..."), history, gr.update(interactive=False)
+
+        # Pre-agent mode: direct LLM chat
+        reply = _chat_with_llm(history, model_label, model_map)
+        history = history + [{"role": "assistant", "content": reply}]
+        return gr.update(value=""), history, gr.update()
 
     # --- Settings handlers ---
 
@@ -612,7 +682,7 @@ with gr.Blocks() as demo:
         message_queue.put(json.dumps({"type": "stop"}))
         _drain_queue(output_queue)
         _drain_queue(message_queue)
-        return [], gr.update(choices=[], value=None), "", *_input_enabled("Type prompt or response here...")
+        return [], gr.update(choices=[], value=None), "", *_input_enabled("Type prompt or response here..."), False
 
     scripts_dict = gr.State(value={})
 
@@ -650,26 +720,29 @@ with gr.Blocks() as demo:
             start_run,
             inputs=[agent_dropdown, scripts_dropdown, chatbot, agent_dir_state, scripts_dir_state,
                     model_dropdown, model_map_state, mcp_tools_checkbox],
-            outputs=[chatbot, chat_input, send_btn]
+            outputs=[chatbot, chat_input, send_btn, agent_running]
         ).then(
-            stream_output, inputs=[chatbot], outputs=[chatbot, chat_input, send_btn]
+            stream_output, inputs=[chatbot, agent_running], outputs=[chatbot, chat_input, send_btn]
         )
     )
 
-    # Chat input (send button + enter key): send to stdin → stream → refresh panels
+    # Chat input (send button + enter key)
+    # When agent is running: send to stdin → stream
+    # When agent is not running: direct LLM chat (no stream needed)
     for trigger in [send_btn.click, chat_input.submit]:
         _with_refresh(
             trigger(
-                send_user_input, inputs=[chat_input, chatbot],
+                send_user_input,
+                inputs=[chat_input, chatbot, agent_running, model_dropdown, model_map_state],
                 outputs=[chat_input, chatbot, send_btn]
             ).then(
-                stream_output, inputs=[chatbot], outputs=[chatbot, chat_input, send_btn]
+                stream_output, inputs=[chatbot, agent_running], outputs=[chatbot, chat_input, send_btn]
             )
         )
 
     # Save / Reset
     save_btn.click(save_conversation, inputs=[chatbot, agent_dir_state], outputs=[chatbot])
-    reset_btn.click(reset_ui, outputs=[chatbot, script_file_dropdown, output_script, chat_input, send_btn])
+    reset_btn.click(reset_ui, outputs=[chatbot, script_file_dropdown, output_script, chat_input, send_btn, agent_running])
 
     # Scripts panel
     script_file_dropdown.change(update_script_display, inputs=[script_file_dropdown, scripts_dict], outputs=output_script)
