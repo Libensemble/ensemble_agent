@@ -533,47 +533,31 @@ with gr.Blocks() as demo:
 
     def _chat_with_llm(history, model_label, model_map):
         """Direct LLM call for pre-agent chat mode."""
+        from ensemble_agent.llm import create_llm
+        from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+
         if model_label and model_label in model_map:
             sel_model, sel_base_url = model_map[model_label]
         else:
             sel_model = _default_model()
             sel_base_url = os.environ.get("OPENAI_BASE_URL", "")
 
-        messages = [{"role": "system", "content": PRE_AGENT_SYSTEM}]
+        messages = [SystemMessage(content=PRE_AGENT_SYSTEM)]
         for msg in history:
             role = msg.get("role", "user")
-            if role in ("user", "assistant"):
-                messages.append({"role": role, "content": msg.get("content", "")})
+            content = msg.get("content", "")
+            if role == "user":
+                messages.append(HumanMessage(content=content))
+            elif role == "assistant":
+                messages.append(AIMessage(content=content))
 
         try:
-            if "claude" in sel_model.lower():
-                api_key = os.environ.get("ANTHROPIC_API_KEY", "")
-                base = os.environ.get("ANTHROPIC_BASE_URL") or "https://api.anthropic.com"
-                resp = requests.post(
-                    f"{base.rstrip('/')}/v1/messages",
-                    headers={
-                        "x-api-key": api_key,
-                        "anthropic-version": "2023-06-01",
-                        "content-type": "application/json",
-                    },
-                    json={
-                        "model": sel_model,
-                        "system": PRE_AGENT_SYSTEM,
-                        "messages": messages[1:],
-                        "max_tokens": 1024,
-                    },
-                    timeout=30,
-                )
-                if resp.ok:
-                    data = resp.json()
-                    content = data.get("content", [{}])
-                    return content[0].get("text", "") if content else ""
-                return f"LLM error: {resp.status_code}"
-            else:
-                from openai import OpenAI
-                client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"), base_url=sel_base_url or None)
-                resp = client.chat.completions.create(model=sel_model, messages=messages, max_tokens=1024)
-                return resp.choices[0].message.content or ""
+            llm, _ = create_llm(sel_model, base_url=sel_base_url or None)
+            response = llm.invoke(messages)
+            text = response.content
+            if isinstance(text, list):
+                text = "".join(block.get("text", "") for block in text if isinstance(block, dict))
+            return text
         except Exception as e:
             return f"LLM error: {e}"
 
