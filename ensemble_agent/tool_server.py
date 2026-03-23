@@ -10,7 +10,6 @@ from pathlib import Path
 
 import numpy as np
 
-from ensemble_agent.archive import ArchiveManager
 
 # Config — set via init() for in-process use, or env vars for MCP server mode
 WORK_DIR = None
@@ -54,8 +53,9 @@ def write_file(filepath: str, content: str) -> str:
         changed = [l for l in changes if l.startswith('+') and not l.startswith('+++')]
 
         file_path.write_text(content)
-        ARCHIVE.start("fix")
-        ARCHIVE.archive_scripts()
+        if ARCHIVE:
+            ARCHIVE.start("fix")
+            ARCHIVE.archive_scripts()
 
         if changed and len(changed) <= 3:
             summary = "; ".join(l[1:].strip() for l in changed)
@@ -109,7 +109,8 @@ def run_script(script_name: str) -> str:
                 f"Stdout: {result.stdout}"
             )
             print(f"Failed (code {result.returncode})", file=sys.stderr, flush=True)
-            ARCHIVE.archive_run_output(error_msg)
+            if ARCHIVE:
+                ARCHIVE.archive_run_output(error_msg)
             return (
                 f"FAILED (code {result.returncode})\n"
                 f"Stderr:\n{result.stderr}\n"
@@ -361,7 +362,11 @@ if __name__ == "__main__":
     from fastmcp import FastMCP
 
     WORK_DIR = Path(os.environ.get("TOOL_WORK_DIR", "generated_scripts"))
-    ARCHIVE = ArchiveManager(str(WORK_DIR))
+    try:
+        from ensemble_agent.archive import ArchiveManager
+        ARCHIVE = ArchiveManager(str(WORK_DIR))
+    except ImportError:
+        ARCHIVE = None
     MAX_RUNS = int(os.environ.get("TOOL_MAX_RUNS", "3"))
     TIMEOUT = int(os.environ.get("TOOL_SCRIPT_TIMEOUT", "300"))
     INTERACTIVE = os.environ.get("TOOL_INTERACTIVE", "").lower() in ("1", "true")
