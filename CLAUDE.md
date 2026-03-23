@@ -15,17 +15,16 @@ ensemble_agent/                # Main package (also: python -m ensemble_agent)
     prompts.py                 # System prompt templates
     archive.py                 # ArchiveManager: versioned script+output tracking
     scripts.py                 # Script parsing (=== format), saving, detection
+    tool_server.py             # Tools: also runs as standalone MCP server (FastMCP)
     mcp_client.py              # MCP server discovery + connect_mcp()
+    create_examples_index.py   # Generates indexes of example source files
     debug.py                   # DebugLogger for message history dumps
-    tools/                     # LangChain tool providers
-        base.py                # ToolProvider ABC: get_tools(), get_prompt_fragment()
-        file_ops.py            # read_file, write_file, list_files
-        runner.py              # run_script (subprocess, timeout, run limits)
-        generator.py           # MCP CreateLibEnsembleScripts wrapper
-        reference_loader.py    # Disabled — future on-demand document loading
-    reference_docs/            # Markdown docs — not loaded currently, future work
+    plotting/                  # Visualization of optimization results
+    reference_docs/            # Markdown guides loaded via load_guide tool
 tests/                         # Test scripts with intentional errors
 web_ui/                        # Gradio web interface
+misc/                          # Standalone demonstrators (e.g. fixup_agent.py)
+.claude/skills/                # Claude Code skills for workflow automation
 ```
 
 ## Running
