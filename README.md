@@ -239,9 +239,11 @@ generate scripts from examples without it.
 
 A skill is included at `.claude/skills/generate-scripts/SKILL.md` that
 provides workflow instructions for generating and fixing ensemble scripts.
-It is discovered automatically by Claude Code (if Claude Code is run in this repo). You can invoke it with
-`/generate-scripts` followed by your request, or Claude will load it
-automatically when your request is relevant.
+It is discovered automatically by Claude Code when started in this repo
+(or you can copy to `~/.claude/skills/generate-scripts/`).
+
+You can invoke it with `/generate-scripts` followed by your request, or
+Claude will load it automatically when your request is relevant.
 
 ## Support
 
