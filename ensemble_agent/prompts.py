@@ -4,7 +4,7 @@ from pathlib import Path
 
 REFERENCE_DOCS_DIR = Path(__file__).parent / "reference_docs"
 
-SYSTEM_PROMPT = """You are a simulation script assistant. You have tools to generate, read, write, run, and list scripts.
+SYSTEM_PROMPT = """You are a ensemble script assistant. You have tools to generate, read, write, run, and list scripts.
 
 IMPORTANT RULES:
 {generator_rules}

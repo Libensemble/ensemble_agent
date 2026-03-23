@@ -222,6 +222,27 @@ GPT-5.1 did not change the optimizer from the template default.
 
 **Recommendation**: For OpenAI, use GPT-5.4+ (GPT-5.2 is usable).
 
+## Using with Claude Code
+
+The ensemble tools and script generator can be used as MCP tool servers
+within [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
+
+Add the MCP servers (run from the repo directory):
+
+```bash
+claude mcp add --transport stdio --scope local ensemble_tools -- python /path/to/ensemble_agent/ensemble_agent/tool_server.py
+claude mcp add --transport stdio --scope local script_generator -- node /path/to/script-creator/mcp_server.mjs
+```
+
+The `script_generator` server is optional but recommended — the tools can
+generate scripts from examples without it.
+
+A skill is included at `.claude/skills/generate-scripts/SKILL.md` that
+provides workflow instructions for generating and fixing ensemble scripts.
+It is discovered automatically by Claude Code (if Claude Code is run in this repo). You can invoke it with
+`/generate-scripts` followed by your request, or Claude will load it
+automatically when your request is relevant.
+
 ## Support
 
 Please report issues or suggestions via Issues or [support options](https://libensemble.readthedocs.io/en/main/introduction.html#resources)
