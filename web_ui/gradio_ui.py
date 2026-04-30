@@ -327,8 +327,13 @@ if _init_model_err:
     print(f"  Check API keys (OPENAI_API_KEY / ANTHROPIC_API_KEY) and OPENAI_BASE_URL.")
 
 with gr.Blocks() as demo:
+    _top_tabs = gr.Tabs()
+    _top_tabs.__enter__()
+    _agent_tab = gr.Tab("Agent")
+    _agent_tab.__enter__()
+
     with gr.Row():
-        gr.Markdown(f"### libEnsemble Agent &nbsp; · &nbsp; Service: `{_service_label}`")
+        gr.Markdown(f"### libEnsemble Agent &nbsp; · &nbsp; Service: {_service_label}")
         run_btn = gr.Button("Start Agent", variant="primary")
         reset_btn = gr.Button("Reset", variant="stop")
         settings_btn = gr.Button("⚙️")
@@ -392,6 +397,23 @@ with gr.Blocks() as demo:
         with gr.Tab("Debug Log"):
             debug_refresh_btn = gr.Button("Refresh Log", size="sm")
             debug_log_box = gr.Code(label="Agent Debug Log", language=None, lines=20)
+
+    _agent_tab.__exit__(None, None, None)
+
+    _systems_tab = gr.Tab("Run targets")
+    _systems_tab.__enter__()
+    from ensemble_agent.remote.run_targets import get_run_targets_dir as _gtd
+    with gr.Row():
+        run_targets_path = gr.Textbox(
+            label="Run targets",
+            value=str(_gtd()),
+            scale=4,
+        )
+        run_targets_apply_btn = gr.Button("Apply", scale=0, min_width=80)
+    systems_refresh_btn = gr.Button("Refresh", size="sm")
+    systems_md = gr.Markdown()
+    _systems_tab.__exit__(None, None, None)
+    _top_tabs.__exit__(None, None, None)
 
     # --- Helpers ---
 
@@ -657,6 +679,49 @@ with gr.Blocks() as demo:
         pngs = sorted(graphs_dir.glob("*.png"), key=lambda p: p.stat().st_mtime, reverse=True)
         return [str(p) for p in pngs]
 
+    def _render_system(sys_name, sys):
+        display = sys.get("display_name", sys_name)
+        header = f"## {display}"
+        out = [header]
+        eps = sys.get("endpoints", {})
+        if eps:
+            out.append("**Endpoints**")
+            for n, e in eps.items():
+                bits = [f"_type_:&nbsp;`{e.get('type', '?')}`"]
+                if "uuid" in e:
+                    bits.append(f"_uuid_:&nbsp;`{e['uuid']}`")
+                out.append(f"- **{n}** — " + ", ".join(bits))
+        envs = sys.get("envs", {})
+        if envs:
+            out.append("\n**Envs**")
+            for n, ev in envs.items():
+                out.append(f"- **{n}** → `{ev.get('activate', '')}`")
+        if sys.get("work_dir"):
+            out.append(f"\n**Work dir:** `{sys['work_dir']}`")
+        rp = sys.get("run_params", {}) or {}
+        if rp:
+            out.append("\n**Run params** (defaults; overridable per run)")
+            out.append("| key | value |")
+            out.append("| --- | --- |")
+            for k, v in rp.items():
+                out.append(f"| `{k}` | `{v}` |")
+        else:
+            out.append("\n**Run params:** _none_")
+        return "\n".join(out)
+
+    def refresh_systems(path=None):
+        from ensemble_agent.remote.run_targets import set_dir, load_all
+        if path:
+            set_dir(path)
+        systems = load_all()
+        if not systems:
+            return f"_No run-target YAMLs found in `{path or 'current dir'}`._"
+        return "\n\n---\n\n".join(_render_system(n, s) for n, s in systems.items())
+
+    def apply_run_targets_path(path):
+        return refresh_systems(path)
+
+
     def save_conversation(history, agent_dir_val):
         agent_dir = Path(agent_dir_val) if agent_dir_val else DEFAULT_AGENT_DIR
         save_dir = agent_dir / DEFAULT_OUTPUT_DIR
@@ -749,6 +814,9 @@ with gr.Blocks() as demo:
     # Graphs / Debug log
     graphs_refresh_btn.click(load_graphs, inputs=[agent_dir_state], outputs=[graphs_gallery])
     debug_refresh_btn.click(fetch_debug_log, inputs=[agent_dir_state], outputs=[debug_log_box])
+    systems_refresh_btn.click(refresh_systems, inputs=[run_targets_path], outputs=[systems_md])
+    run_targets_apply_btn.click(apply_run_targets_path, inputs=[run_targets_path], outputs=[systems_md])
+    demo.load(refresh_systems, inputs=[run_targets_path], outputs=[systems_md])
 
 
 def start_uvicorn_server():

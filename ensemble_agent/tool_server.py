@@ -46,7 +46,9 @@ def write_file(filepath: str, content: str) -> str:
     try:
         if Path(filepath).is_absolute():
             return "ERROR: Cannot write to absolute paths. Use a filename to write in the working directory."
-        file_path = WORK_DIR / filepath
+        file_path = (WORK_DIR / filepath).resolve()
+        if not file_path.is_relative_to(WORK_DIR.resolve()):
+            return "ERROR: Cannot write outside the working directory."
         old_lines = file_path.read_text().splitlines() if file_path.exists() else []
         new_lines = content.splitlines()
         changes = list(difflib.unified_diff(old_lines, new_lines, n=0))
@@ -326,6 +328,72 @@ def get_example(name: str, collection: str = "tests") -> str:
         return f"ERROR: Could not fetch {name}: {e}"
 
 
+def run_remote_script(
+    system: str,
+    endpoint: str,
+    run_params: dict = None,
+    env: str = None,
+    run_script_name: str = "run_libe.py",
+) -> str:
+    """Run the scripts in the working directory on a run-target system+endpoint.
+
+    Use list_systems to see available targets. For globus_compute endpoints,
+    run_params holds user_endpoint_config (account, queue, num_nodes, walltime).
+    Returns hostname, run_dir, returncode, stdout, stderr.
+    """
+    global run_count
+    run_count += 1
+    if run_count > MAX_RUNS:
+        return "Run limit reached. Stop and report current status."
+    from .remote import runner
+    print(f"Submitting to {system}/{endpoint}...", file=sys.stderr, flush=True)
+    try:
+        result = runner.run_script(
+            system=system,
+            endpoint=endpoint,
+            scripts_dir=str(WORK_DIR),
+            run_params=run_params or {},
+            env=env,
+            run_script_name=run_script_name,
+        )
+    except Exception as e:
+        return f"ERROR: {e}"
+    # Pull result files from the remote run dir into WORK_DIR so check_results
+    # and generate_graphs can use them locally.
+    pulled = []
+    for name, data in (result.get("result_files") or {}).items():
+        (WORK_DIR / name).write_bytes(data)
+        pulled.append(name)
+    status = "SUCCESS" if result["returncode"] == 0 else f"FAILED (rc={result['returncode']})"
+    print(
+        f"Returned from {result['hostname']} (PBS job: {result.get('pbs_jobid', '?')}) — {status}",
+        file=sys.stderr, flush=True,
+    )
+    if pulled:
+        print(f"Result files saved locally: {pulled}", file=sys.stderr, flush=True)
+    if ARCHIVE and result["returncode"] != 0:
+        ARCHIVE.archive_run_output(result["stderr"])
+    head = (
+        f"hostname: {result['hostname']}\n"
+        f"pbs_jobid: {result.get('pbs_jobid', '')}\n"
+        f"run_dir: {result['run_dir']}\n"
+        f"returncode: {result['returncode']}\n"
+        f"files: {result['files_written']}\n"
+        f"pulled_locally: {pulled}\n"
+    )
+    return (
+        head
+        + f"--- STDOUT ---\n{result['stdout'][:2000]}\n"
+        + f"--- STDERR ---\n{result['stderr'][:2000]}"
+    )
+
+
+def list_systems() -> str:
+    """List remote (and local) systems available for run_remote_script."""
+    from .remote import run_targets as _run_targets
+    return _run_targets.render_summary()
+
+
 def run_python(code: str) -> str:
     """Execute a Python snippet and return its stdout. numpy is available as np. Runs in the working directory."""
     import io
@@ -347,6 +415,7 @@ ALL_TOOLS = [
     read_file, write_file, list_files, run_script, generate_graphs,
     install_package, check_results, browse_directory, load_guide,
     get_examples, get_example, run_python,
+    list_systems, run_remote_script,
 ]
 
 

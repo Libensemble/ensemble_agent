@@ -64,6 +64,9 @@ async def run_agent(config: AgentConfig):
             tool_server.init(config, archive)
             tools = tool_server.get_langchain_tools()
 
+        if config.remote:
+            tools = [t for t in tools if t.name != "run_script"]
+
         # Connect to generator MCP (if available)
         if has_generator:
             try:
@@ -94,7 +97,7 @@ async def run_agent(config: AgentConfig):
                 has_generator = False
 
         # Create LLM and agent
-        llm, service = create_llm(config.model, config.temperature, config.base_url)
+        llm, service = create_llm(config.model, config.base_url)
         agent = create_agent(llm, tools)
         print(f"Agent initialized (model: {config.model}, service: {service})\n")
 
@@ -223,6 +226,14 @@ def _with_pre_chat(prompt):
 async def _run_autonomous(agent, messages, initial_msg, config, debug):
     """Single invocation — agent generates/loads, runs, fixes, reports."""
     goal = AUTONOMOUS_GOAL.format(initial_msg=initial_msg)
+    if config.remote:
+        sys_name, _, ep_name = config.remote.partition(":")
+        goal += (
+            f"\n\nALWAYS run with run_remote_script(system='{sys_name}', "
+            f"endpoint='{ep_name}'). The local run_script tool is unavailable. "
+            "Stay under 4 minutes between submissions so the same pilot job is reused "
+            "(no second PBS queue wait)."
+        )
     messages.append(("user", goal))
 
     if config.show_prompts:

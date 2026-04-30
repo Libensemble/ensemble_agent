@@ -13,7 +13,7 @@ MAX_RUNS = 3
 SCRIPT_TIMEOUT = 300  # seconds
 # Default models
 DEFAULT_OPENAI_MODEL = "gpt-5.4"
-DEFAULT_ANTHROPIC_MODEL = "claude-opus-4-6"
+DEFAULT_ANTHROPIC_MODEL = "claude-opus-4-7"
 
 # Storage
 ARCHIVE_RUNS_DIR = "archive_runs"
@@ -67,7 +67,6 @@ class AgentConfig:
 
     # LLM
     model: str = field(default_factory=_default_model)
-    temperature: float = 0
     base_url: Optional[str] = field(
         default_factory=lambda: os.environ.get("OPENAI_BASE_URL")
     )
@@ -87,6 +86,9 @@ class AgentConfig:
 
     # Permissions
     allow_install: bool = False
+
+    # Remote execution: "system:endpoint" (e.g., "polaris:polaris-libe")
+    remote: Optional[str] = None
 
     def get_user_prompt(self) -> Optional[str]:
         """Resolve the user prompt from --prompt, --prompt-file, or default."""
@@ -123,6 +125,8 @@ Examples:
     parser.add_argument("--show-prompts", action="store_true", help="Print prompts sent to AI")
     parser.add_argument("--debug", action="store_true", help="Dump full message log to debug_log.txt")
     parser.add_argument("--allow-install", action="store_true", help="Allow agent to pip install packages in autonomous mode")
+    parser.add_argument("--remote", help="Run on a run-target as SYSTEM:ENDPOINT, e.g., polaris:polaris-libe")
+    parser.add_argument("--run-targets", dest="run_targets", help="Path to run-targets dir (default: ./run_targets)")
     args = parser.parse_args(argv)
 
     # Positional script arg: treat its directory as scripts_dir
@@ -151,5 +155,10 @@ Examples:
         config.model = args.model
     if args.allow_install:
         config.allow_install = True
+    if args.remote:
+        config.remote = args.remote
+    if args.run_targets:
+        from .remote.run_targets import set_dir
+        set_dir(args.run_targets)
 
     return config

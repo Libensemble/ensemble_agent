@@ -55,7 +55,7 @@ EXAMPLES_PROMPT_FRAGMENT = (
 AUTONOMOUS_GOAL = """{initial_msg}
 
 After generating/loading scripts: review them. Load the guide for the generator being used, or load_guide('generators') for an overview. If an input file is referenced, read it and verify it has Jinja2 template markers matching the script's input_names — if not, create a templated copy. Then run the scripts, and if they fail fix the error and retry.
-After a successful run, use check_results to inspect the output values.
+After a successful run (returncode 0): STOP IMMEDIATELY. Do NOT call write_file. Do NOT call run_remote_script again. You may call check_results once to summarise, then report and exit. Do not try to "improve" the scripts based on what the results look like.
 DO NOT make any other changes or improvements.
 DO NOT wrap in markdown or add explanations when fixing.
 Report the result."""
@@ -98,6 +98,13 @@ def build_system_prompt(has_generator):
     guides = _discover_guides()
     if guides:
         fragments.append(guides)
+    try:
+        from .remote.run_targets import render_summary
+        targets_summary = render_summary()
+        if targets_summary:
+            fragments.append(targets_summary)
+    except Exception:
+        pass
     reference_context = "\n\n".join(fragments)
 
     return SYSTEM_PROMPT.format(

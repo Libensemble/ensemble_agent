@@ -20,7 +20,7 @@ def _service_label(model, base_url):
     return "OpenAI"
 
 
-def create_llm(model, temperature=0, base_url=None):
+def create_llm(model, base_url=None):
     """Create LLM — ChatAnthropic for Claude models, ChatOpenAI otherwise.
 
     Returns (llm, service_label).
@@ -32,11 +32,9 @@ def create_llm(model, temperature=0, base_url=None):
         except ImportError:
             sys.exit("Error: pip install langchain-anthropic required for Claude models")
         anthropic_base = os.environ.get("ANTHROPIC_BASE_URL")
-        llm = ChatAnthropic(
-            model=model, temperature=temperature, base_url=anthropic_base or None,
-            streaming=True,
-        )
-        return llm, service
+        return ChatAnthropic(
+            model=model, base_url=anthropic_base or None, streaming=True,
+        ), service
     from langchain_openai import ChatOpenAI
 
-    return ChatOpenAI(model=model, temperature=temperature, base_url=base_url), service
+    return ChatOpenAI(model=model, base_url=base_url), service

@@ -172,6 +172,35 @@ When the agent is re-started any existing `generated_scripts/` directory is back
 to an `archive_runs/` dir.
 
 
+## Remote Systems
+
+The agent can ship scripts to a remote system and run them there via a
+[Globus Compute](https://www.globus.org/compute) endpoint. Run targets are
+defined as YAML files under `./run_targets/`.
+
+Initialize a target template:
+
+```bash
+python ensemble_agent/init_run_targets.py polaris
+```
+
+Edit the resulting `run_targets/polaris.yaml` to fill in your endpoint UUID,
+the path to a venv on the remote (with libensemble installed), the remote
+work_dir, and the `run_params` your endpoint's j2 template expects. Then run:
+
+```bash
+python ensemble_agent.py --scripts <dir> --remote polaris:polaris-libe
+```
+
+The `--remote SYSTEM:ENDPOINT` flag tells the agent to use `run_remote_script`
+instead of running locally. The endpoint UUID and run params come from the
+matching YAML.
+
+Tested on Polaris (ALCF) using a personal Globus Compute endpoint with a j2
+config matching the Polaris MEP layout (PBSProProvider + SimpleLauncher). The
+example j2 is at `user_config_template.yaml.j2` in the repo root — copy it to
+`~/.globus_compute/<endpoint>/` on the remote.
+
 ## Options
 
 To see all script options run
