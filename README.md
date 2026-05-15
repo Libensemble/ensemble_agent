@@ -1,6 +1,6 @@
 # Ensemble Agent
 
-An agentic system for generating, running, and iteratively fixing simulation scripts. Currently supports [libEnsemble](https://github.com/Libensemble/libensemble), designed to extend to other ensemble tools.
+An agentic system for creating and running ensemble workflows. Currently supports [libEnsemble](https://github.com/Libensemble/libensemble), designed to extend to other ensemble tools.
 
 Uses LangChain ReAct agents with tools exposed via MCP and local Python functions.
 
